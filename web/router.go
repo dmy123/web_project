@@ -9,8 +9,8 @@ type router struct {
 	trees map[string]*node
 }
 
-func newRouter() *router {
-	return &router{trees: make(map[string]*node)}
+func newRouter() router {
+	return router{trees: make(map[string]*node)}
 }
 
 type node struct {
@@ -19,6 +19,17 @@ type node struct {
 	handler  HandleFunc
 
 	route string
+
+	// 通配符匹配
+	starChild *node
+
+	// 参数路径匹配
+	paramChild *node
+}
+
+type matchInfo struct {
+	n          *node
+	pathParams map[string]string
 }
 
 func (r *router) addRoute(method string, path string, handler HandleFunc) {
@@ -60,42 +71,71 @@ func (r *router) addRoute(method string, path string, handler HandleFunc) {
 		panic(fmt.Sprintf("web: 路由冲突[%s]", path))
 	}
 	root.handler = handler
-	root.route = path
+	//root.route = path
 }
 
-func (r *router) findRoute(method string, path string) (*node, bool) {
+func (r *router) findRoute(method string, path string) (*matchInfo, bool) {
 	root, exist := r.trees[method]
 	if !exist {
 		return nil, false
 	}
 	if path == "/" {
-		return root, true
+		return &matchInfo{n: root}, true
 	}
 	path = strings.Trim(path, "/")
 
 	segs := strings.Split(path, "/")
+	pathParams := make(map[string]string)
 	for _, seg := range segs {
-		child, exist := root.childOf(seg)
+		child, paramChild, exist := root.childOf(seg)
 		if !exist {
 			return nil, false
 		}
+		if paramChild {
+			pathParams[child.path[1:]] = path
+		}
 		root = child
 	}
-	return root, true
+	return &matchInfo{n: root, pathParams: pathParams}, true
 }
 
-func (n *node) childOf(path string) (*node, bool) {
+// childOf 返回子节点，是否为路径参数，是否存在子节点
+func (n *node) childOf(path string) (*node, bool, bool) {
+
 	if n.children == nil {
-		return nil, false
+		if n.paramChild != nil {
+			return n.paramChild, true, true
+		}
+		return n.starChild, false, n.starChild != nil
 	}
 	child, exist := n.children[path]
 	if !exist {
-		return nil, false
+		if n.paramChild != nil {
+			return n.paramChild, true, true
+		}
+		return n.starChild, false, n.starChild != nil
 	}
-	return child, true
+	return child, false, true
 }
 
 func (n *node) childOrCreate(path string) *node {
+	if path[0] == ':' {
+		if n.starChild != nil {
+			panic(fmt.Sprintf("web: 非法路由，已有通配符路由。不允许同时注册通配符路由和参数路由 [%s]", path))
+		}
+		n.paramChild = &node{path: path}
+		return n.paramChild
+	}
+	if path == "*" {
+		if n.paramChild != nil {
+			panic(fmt.Sprintf("web: 非法路由，已有路径参数路由。不允许同时注册通配符路由和参数路由 [%s]", path))
+		}
+		if n.starChild != nil {
+			return n.starChild
+		}
+		n.starChild = &node{path: "*"}
+		return n.starChild
+	}
 	if n.children == nil {
 		n.children = make(map[string]*node)
 	}

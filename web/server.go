@@ -18,7 +18,7 @@ type Server interface {
 var _ Server = &HTTPServer{}
 
 type HTTPServer struct {
-	*router
+	router
 }
 
 func NewHTTPServer() *HTTPServer {
@@ -51,12 +51,12 @@ func (h *HTTPServer) serve(ctx *Context) {
 
 	// 查找路由，执行命中业务逻辑
 	n, ok := h.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
-	if !ok || n.handler == nil {
+	if !ok || n.n.handler == nil {
 		ctx.Resp.WriteHeader(404)
 		ctx.Resp.Write([]byte("NOT FOUND"))
 		return
 	}
-	n.handler(ctx)
+	n.n.handler(ctx)
 }
 
 func (h *HTTPServer) Start(addr string) error {
