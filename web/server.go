@@ -41,8 +41,9 @@ func (h *HTTPServer) Post(path string, handleFunc HandleFunc) {
 // ServeHTTP 处理请求的入口
 func (h *HTTPServer) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	ctx := &Context{
-		Req:  request,
-		Resp: writer,
+		Req:        request,
+		Resp:       writer,
+		pathParams: map[string]string{},
 	}
 	h.serve(ctx)
 }
@@ -56,6 +57,7 @@ func (h *HTTPServer) serve(ctx *Context) {
 		ctx.Resp.Write([]byte("NOT FOUND"))
 		return
 	}
+	ctx.pathParams = n.pathParams
 	n.n.handler(ctx)
 }
 

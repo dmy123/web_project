@@ -166,6 +166,23 @@ func (r *router) equal(y router) (string, bool) {
 	return "", true
 }
 
+func (m *matchInfo) equal(y *matchInfo) (string, bool) {
+	nr, ok := m.n.equal(y.n)
+	if !ok {
+		return nr, ok
+	}
+	for k, v := range m.pathParams {
+		val, exist := y.pathParams[k]
+		if !exist {
+			return "web: 参数不存在", false
+		}
+		if v != val {
+			return "web: 参数值不匹配", false
+		}
+	}
+	return "", true
+}
+
 // 定义比较node的方法
 func (n *node) equal(y *node) (string, bool) {
 	if y == nil {
@@ -318,7 +335,9 @@ func Test_router_findRoute(t *testing.T) {
 			wantMatchInfo: &matchInfo{n: &node{
 				path:    ":id",
 				handler: mockHandler,
-			}},
+			},
+				pathParams: map[string]string{"id": "123"},
+			},
 		},
 	}
 	for _, tt := range testCases {
@@ -328,7 +347,7 @@ func Test_router_findRoute(t *testing.T) {
 			if !ok {
 				return
 			}
-			_, ok = res.n.equal(tt.wantMatchInfo.n)
+			_, ok = res.equal(tt.wantMatchInfo)
 			assert.Equal(t, ok, true)
 			//tt.wantMatchInfo.equal(res)
 		})

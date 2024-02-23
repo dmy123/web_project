@@ -85,14 +85,17 @@ func (r *router) findRoute(method string, path string) (*matchInfo, bool) {
 	path = strings.Trim(path, "/")
 
 	segs := strings.Split(path, "/")
-	pathParams := make(map[string]string)
+	var pathParams map[string]string
 	for _, seg := range segs {
 		child, paramChild, exist := root.childOf(seg)
 		if !exist {
 			return nil, false
 		}
 		if paramChild {
-			pathParams[child.path[1:]] = path
+			if pathParams == nil {
+				pathParams = make(map[string]string)
+			}
+			pathParams[child.path[1:]] = seg
 		}
 		root = child
 	}
