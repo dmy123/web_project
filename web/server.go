@@ -5,30 +5,58 @@ import (
 	"net/http"
 )
 
-type HandleFunc func(ctx Context)
+type HandleFunc func(ctx *Context)
 
 type Server interface {
 	http.Handler
 	Start(addr string) error
 
 	// 添加路由注册功能
-	AddRoute(method string, path string, handleFunc HandleFunc)
+	addRoute(method string, path string, handleFunc HandleFunc)
 }
 
 var _ Server = &HTTPServer{}
 
 type HTTPServer struct {
+	*router
 }
 
-func (h *HTTPServer) AddRoute(method string, path string, handleFunc HandleFunc) {
-	//TODO implement me
-	panic("implement me")
+func NewHTTPServer() *HTTPServer {
+	return &HTTPServer{router: newRouter()}
+}
+
+//func (h *HTTPServer) addRoute(method string, path string, handleFunc HandleFunc) {
+//	//TODO implement me
+//	panic("implement me")
+//}
+
+func (h *HTTPServer) Get(path string, handleFunc HandleFunc) {
+	h.addRoute(http.MethodGet, path, handleFunc)
+}
+
+func (h *HTTPServer) Post(path string, handleFunc HandleFunc) {
+	h.addRoute(http.MethodPost, path, handleFunc)
 }
 
 // ServeHTTP 处理请求的入口
 func (h *HTTPServer) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	//TODO implement me
-	panic("implement me")
+	ctx := &Context{
+		Req:  request,
+		Resp: writer,
+	}
+	h.serve(ctx)
+}
+
+func (h *HTTPServer) serve(ctx *Context) {
+
+	// 查找路由，执行命中业务逻辑
+	n, ok := h.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
+	if !ok || n.handler == nil {
+		ctx.Resp.WriteHeader(404)
+		ctx.Resp.Write([]byte("NOT FOUND"))
+		return
+	}
+	n.handler(ctx)
 }
 
 func (h *HTTPServer) Start(addr string) error {
