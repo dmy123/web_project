@@ -54,7 +54,7 @@ func (h *HTTPServer) serve(ctx *Context) {
 	n, ok := h.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
 	if !ok || n.n.handler == nil {
 		ctx.Resp.WriteHeader(404)
-		ctx.Resp.Write([]byte("NOT FOUND"))
+		ctx.Resp.Write([]byte("NOT FOUND ERR"))
 		return
 	}
 	ctx.pathParams = n.pathParams

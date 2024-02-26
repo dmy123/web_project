@@ -31,5 +31,11 @@ func Test_Server(t *testing.T) {
 	h.addRoute(http.MethodGet, "/order/detail", func(ctx *Context) {
 		ctx.Resp.Write([]byte("hello, order detail"))
 	})
+
+	h.addRoute(http.MethodPost, "/form", func(ctx *Context) {
+		ctx.Req.ParseForm()
+		ctx.Resp.Write([]byte(fmt.Sprintf("hello, %s", ctx.Req.URL.Path)))
+	})
+
 	h.Start(":8081")
 }
