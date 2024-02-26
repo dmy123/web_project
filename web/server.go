@@ -19,6 +19,8 @@ var _ Server = &HTTPServer{}
 
 type HTTPServer struct {
 	router
+
+	mdls []Middleware
 }
 
 func NewHTTPServer() *HTTPServer {
@@ -45,7 +47,14 @@ func (h *HTTPServer) ServeHTTP(writer http.ResponseWriter, request *http.Request
 		Resp:       writer,
 		pathParams: map[string]string{},
 	}
-	h.serve(ctx)
+
+	root := h.serve
+	for i := len(h.mdls) - 1; i >= 0; i-- {
+		root = h.mdls[i](root)
+	}
+	root(ctx)
+
+	//h.serve(ctx)
 }
 
 func (h *HTTPServer) serve(ctx *Context) {
