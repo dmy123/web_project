@@ -71,7 +71,7 @@ func (r *router) addRoute(method string, path string, handler HandleFunc) {
 		panic(fmt.Sprintf("web: 路由冲突[%s]", path))
 	}
 	root.handler = handler
-	//root.route = path
+	root.route = path
 }
 
 func (r *router) findRoute(method string, path string) (*matchInfo, bool) {

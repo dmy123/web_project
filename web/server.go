@@ -17,14 +17,33 @@ type Server interface {
 
 var _ Server = &HTTPServer{}
 
+// option模式
+type HTTPServerOption func(server *HTTPServer)
+
 type HTTPServer struct {
 	router
 
 	mdls []Middleware
 }
 
-func NewHTTPServer() *HTTPServer {
-	return &HTTPServer{router: newRouter()}
+func NewHTTPServer(opts ...HTTPServerOption) *HTTPServer {
+	res := &HTTPServer{router: newRouter()}
+	for _, opt := range opts {
+		opt(res)
+	}
+	return res
+}
+
+// NewHTTPServerV1缺乏拓展性
+//func NewHTTPServerV1(mdls ...Middleware) *HTTPServer {
+//	res := &HTTPServer{router: newRouter(), mdls: mdls}
+//	return res
+//}
+
+func ServerWithMiddleware(mdls ...Middleware) HTTPServerOption {
+	return func(server *HTTPServer) {
+		server.mdls = mdls
+	}
 }
 
 //func (h *HTTPServer) addRoute(method string, path string, handleFunc HandleFunc) {
@@ -67,6 +86,7 @@ func (h *HTTPServer) serve(ctx *Context) {
 		return
 	}
 	ctx.pathParams = n.pathParams
+	ctx.MatchedRoute = n.n.route
 	n.n.handler(ctx)
 }
 
