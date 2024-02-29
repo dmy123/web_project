@@ -83,7 +83,7 @@ func (h *HTTPServer) ServeHTTP(writer http.ResponseWriter, request *http.Request
 			h.flashResp(ctx)
 		}
 	}
-	m(root)
+	root = m(root)
 	root(ctx)
 
 	//h.serve(ctx)
