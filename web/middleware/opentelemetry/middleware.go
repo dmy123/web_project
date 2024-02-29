@@ -28,8 +28,16 @@ func (m MiddlewareBuilder) Build() web.Middleware {
 			// 尝试和客户端的trace结合在一起
 			reqCtx = otel.GetTextMapPropagator().Extract(reqCtx, propagation.HeaderCarrier(ctx.Req.Header))
 
-			_, span := m.Tracer.Start(reqCtx, "unknown")
-			defer span.End()
+			reqCtx, span := m.Tracer.Start(reqCtx, "unknown")
+			//defer span.End()
+			defer func() {
+				if ctx.MatchedRoute != "" {
+					span.SetName(ctx.MatchedRoute)
+				}
+
+				span.SetAttributes(attribute.Int("http.status", ctx.RespStatusCode))
+				span.End()
+			}()
 			span.SetAttributes(attribute.String("http.method", ctx.Req.Method))
 			span.SetAttributes(attribute.String("peer.hostname", ctx.Req.Host))
 			span.SetAttributes(attribute.String("http.url", ctx.Req.URL.String()))
@@ -38,11 +46,10 @@ func (m MiddlewareBuilder) Build() web.Middleware {
 			span.SetAttributes(attribute.String("component", "web"))
 			span.SetAttributes(attribute.String("peer.address", ctx.Req.RemoteAddr))
 			span.SetAttributes(attribute.String("http.proto", ctx.Req.Proto))
-			next(ctx)
 
-			if ctx.MatchedRoute != "" {
-				span.SetName(ctx.MatchedRoute)
-			}
+			ctx.Req = ctx.Req.WithContext(reqCtx)
+
+			next(ctx)
 		}
 	}
 }
