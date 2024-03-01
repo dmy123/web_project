@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+var regexAll, _ = regexp.Compile(".*")
+var regexNotAll, _ = regexp.Compile("^.+$")
+var regexNumber, _ = regexp.Compile("[0-9]+")
+
 func TestRouter_AddRoute(t *testing.T) {
 	// 1、构造路由树
 	// 2、验证路由树
@@ -74,8 +78,6 @@ func TestRouter_AddRoute(t *testing.T) {
 	for _, route := range testRoutes {
 		r.addRoute(route.method, route.path, mockHandler)
 	}
-	regexAll, _ := regexp.Compile(".*")
-	regexNotAll, _ := regexp.Compile("^.+$")
 	wantRouter := &router{
 		trees: map[string]*node{
 			http.MethodGet: {
@@ -332,7 +334,7 @@ func Test_router_findRoute(t *testing.T) {
 			path:   "/order/create",
 		},
 		{
-			method: http.MethodDelete,
+			method: http.MethodHead,
 			path:   "/",
 		},
 		{
@@ -340,8 +342,26 @@ func Test_router_findRoute(t *testing.T) {
 			path:   "/order/*",
 		},
 		{
+			method: http.MethodPost,
+			path:   "/mid/*/num",
+		},
+		// 参数路由
+		{
 			method: http.MethodGet,
 			path:   "/param/:id",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/param/:id/detail",
+		},
+		// 正则
+		{
+			method: http.MethodDelete,
+			path:   "/reg/:id(.*)",
+		},
+		{
+			method: http.MethodDelete,
+			path:   "/:id([0-9]+)/home",
 		},
 	}
 	r := newRouter()
@@ -359,7 +379,7 @@ func Test_router_findRoute(t *testing.T) {
 	}{
 		{
 			name:      "root",
-			method:    http.MethodDelete,
+			method:    http.MethodHead,
 			path:      "/",
 			wantFound: true,
 			wantMatchInfo: &matchInfo{n: &node{
@@ -379,6 +399,7 @@ func Test_router_findRoute(t *testing.T) {
 			wantMatchInfo: &matchInfo{n: &node{
 				path:    "create",
 				handler: mockHandler,
+				route:   "/order/create",
 			}},
 		},
 		{
@@ -389,6 +410,7 @@ func Test_router_findRoute(t *testing.T) {
 			wantMatchInfo: &matchInfo{n: &node{
 				path:    "*",
 				handler: mockHandler,
+				route:   "/order/*",
 			}},
 		},
 		{
@@ -402,11 +424,13 @@ func Test_router_findRoute(t *testing.T) {
 					"create": {
 						path:    "create",
 						handler: mockHandler,
+						route:   "/order/create",
 					},
 				},
 				starChild: &node{
 					path:    "*",
 					handler: mockHandler,
+					route:   "/order/*",
 				},
 			}},
 		},
@@ -415,6 +439,56 @@ func Test_router_findRoute(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/abc",
 		},
+		// 通配符匹配
+		{
+			// 命中/order/*
+			name:      "star match",
+			method:    http.MethodPost,
+			path:      "/order/delete",
+			wantFound: true,
+			wantMatchInfo: &matchInfo{
+				n: &node{
+					path:    "*",
+					handler: mockHandler,
+					route:   "/order/*",
+				},
+			},
+		},
+		{
+			// 命中/order/*
+			name:      "star match",
+			method:    http.MethodPost,
+			path:      "/order/delete/haha",
+			wantFound: true,
+			wantMatchInfo: &matchInfo{
+				n: &node{
+					path:    "*",
+					handler: mockHandler,
+					route:   "/order/*",
+				},
+			},
+		},
+		{
+			// 命中/order/*
+			name:      "mid str",
+			method:    http.MethodPost,
+			path:      "/mid/123/num",
+			wantFound: true,
+			wantMatchInfo: &matchInfo{
+				n: &node{
+					path:    "num",
+					handler: mockHandler,
+					route:   "/mid/*/num",
+				},
+			},
+		},
+		{
+			// 命中/order/*
+			name:   "mid str unmatch",
+			method: http.MethodPost,
+			path:   "/mid/123/456/num",
+		},
+		// 参数路径
 		{
 			// 命中 /param/:id
 			name:      ":id",
@@ -422,11 +496,72 @@ func Test_router_findRoute(t *testing.T) {
 			path:      "/param/123",
 			wantFound: true,
 			wantMatchInfo: &matchInfo{n: &node{
-				path:    ":id",
-				handler: mockHandler,
+				path:      ":id",
+				paramName: "id",
+				children: map[string]*node{
+					"detail": {
+						path:    "detail",
+						handler: mockHandler,
+						route:   "/param/:id/detail",
+					},
+				},
 			},
 				pathParams: map[string]string{"id": "123"},
 			},
+		},
+		// 正则
+		{
+			// 命中 /param/:id/detail
+			name:      ":id*",
+			method:    http.MethodGet,
+			path:      "/param/123/detail",
+			wantFound: true,
+			wantMatchInfo: &matchInfo{
+				n: &node{
+					path:    "detail",
+					handler: mockHandler,
+					route:   "/param/:id/detail",
+				},
+				pathParams: map[string]string{"id": "123"},
+			},
+		},
+		{
+			// 命中 /reg/:id(.*)
+			name:      ":id(.*)",
+			method:    http.MethodDelete,
+			path:      "/reg/123",
+			wantFound: true,
+			wantMatchInfo: &matchInfo{
+				n: &node{
+					path:      ":id(.*)",
+					handler:   mockHandler,
+					route:     "/reg/:id(.*)",
+					regexExpr: regexAll,
+					paramName: "id",
+				},
+				pathParams: map[string]string{"id": "123"},
+			},
+		},
+		{
+			// 命中 /:id([0-9]+)/home
+			name:      ":id([0-9]+)",
+			method:    http.MethodDelete,
+			path:      "/123/home",
+			wantFound: true,
+			wantMatchInfo: &matchInfo{
+				n: &node{
+					path:    "home",
+					handler: mockHandler,
+					route:   "/:id([0-9]+)/home",
+				},
+				pathParams: map[string]string{"id": "123"},
+			},
+		},
+		{
+			// 未命中 /:id([0-9]+)/home
+			name:   "not :id([0-9]+)",
+			method: http.MethodDelete,
+			path:   "/abc/home",
 		},
 	}
 	for _, tt := range testCases {

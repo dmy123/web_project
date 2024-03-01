@@ -94,6 +94,9 @@ func (r *router) findRoute(method string, path string) (*matchInfo, bool) {
 	for _, seg := range segs {
 		child, paramChild, exist := root.childOf(seg)
 		if !exist {
+			if root.path == "*" && root.children == nil && root.regexChild == nil && root.paramChild == nil {
+				break
+			}
 			return nil, false
 		}
 		if paramChild {
@@ -108,9 +111,13 @@ func (r *router) findRoute(method string, path string) (*matchInfo, bool) {
 }
 
 // childOf 返回子节点，是否为路径参数，是否存在子节点
+// 优先级：静态匹配、正则、参数路径、通配符匹配
 func (n *node) childOf(path string) (*node, bool, bool) {
 
 	if n.children == nil {
+		if n.regexChild != nil && n.regexChild.regexExpr != nil && n.regexChild.regexExpr.Match([]byte(path)) {
+			return n.regexChild, false, true
+		}
 		if n.paramChild != nil {
 			return n.paramChild, true, true
 		}
@@ -118,6 +125,9 @@ func (n *node) childOf(path string) (*node, bool, bool) {
 	}
 	child, exist := n.children[path]
 	if !exist {
+		if n.regexChild != nil && n.regexChild.regexExpr != nil && n.regexChild.regexExpr.Match([]byte(path)) {
+			return n.regexChild, false, true
+		}
 		if n.paramChild != nil {
 			return n.paramChild, true, true
 		}
