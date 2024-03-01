@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"reflect"
+	"regexp"
 	"testing"
 )
 
@@ -15,6 +16,7 @@ func TestRouter_AddRoute(t *testing.T) {
 		method string
 		path   string
 	}{
+		// 静态匹配测试用例
 		{
 			method: http.MethodGet,
 			path:   "/user/home",
@@ -39,6 +41,7 @@ func TestRouter_AddRoute(t *testing.T) {
 			method: http.MethodPost,
 			path:   "/login",
 		},
+		// 通配符测试用例
 		{
 			method: http.MethodGet,
 			path:   "/order/*",
@@ -51,9 +54,19 @@ func TestRouter_AddRoute(t *testing.T) {
 			method: http.MethodGet,
 			path:   "/*/*",
 		},
+		// 参数测试用例
 		{
 			method: http.MethodGet,
 			path:   "/param/:id",
+		},
+		//正则测试用例
+		{
+			method: http.MethodDelete,
+			path:   "/reg/:id(.*)",
+		},
+		{
+			method: http.MethodDelete,
+			path:   "/:name(^.+$)/abc",
 		},
 	}
 	r := newRouter()
@@ -61,6 +74,8 @@ func TestRouter_AddRoute(t *testing.T) {
 	for _, route := range testRoutes {
 		r.addRoute(route.method, route.path, mockHandler)
 	}
+	regexAll, _ := regexp.Compile(".*")
+	regexNotAll, _ := regexp.Compile("^.+$")
 	wantRouter := &router{
 		trees: map[string]*node{
 			http.MethodGet: {
@@ -72,9 +87,11 @@ func TestRouter_AddRoute(t *testing.T) {
 							"home": {
 								path:    "home",
 								handler: mockHandler,
+								route:   "/user/home",
 							},
 						},
 						handler: mockHandler,
+						route:   "/user",
 					},
 					"order": {
 						path: "order",
@@ -82,19 +99,25 @@ func TestRouter_AddRoute(t *testing.T) {
 							"detail": {
 								path:    "detail",
 								handler: mockHandler,
+								route:   "/order/detail",
 							},
 						},
+						//route: "/order",
 						starChild: &node{
 							path:    "*",
 							handler: mockHandler,
+							route:   "/order/*",
 						},
 					},
 					"param": {
 						path: "param",
 						paramChild: &node{
-							path:    ":id",
-							handler: mockHandler,
+							path:      ":id",
+							handler:   mockHandler,
+							paramName: "id",
+							route:     "/param/:id",
 						},
+						//route: "/param",
 					},
 				},
 				handler: mockHandler,
@@ -104,7 +127,9 @@ func TestRouter_AddRoute(t *testing.T) {
 					starChild: &node{
 						path:    "*",
 						handler: mockHandler,
+						route:   "/*/*",
 					},
+					route: "/*",
 				},
 			},
 			http.MethodPost: {
@@ -113,6 +138,7 @@ func TestRouter_AddRoute(t *testing.T) {
 					"login": {
 						path:    "login",
 						handler: mockHandler,
+						route:   "/login",
 					},
 					"order": {
 						path: "order",
@@ -120,8 +146,10 @@ func TestRouter_AddRoute(t *testing.T) {
 							"create": {
 								path:    "create",
 								handler: mockHandler,
+								route:   "/order/create",
 							},
 						},
+						//route: "/order",
 						//starChild: &node{
 						//	path:    "*",
 						//	handler: mockHandler,
@@ -129,9 +157,38 @@ func TestRouter_AddRoute(t *testing.T) {
 					},
 				},
 			},
+			http.MethodDelete: {
+				path: "/",
+				children: map[string]*node{
+					"reg": {
+						path: "reg",
+						regexChild: &node{
+							path:      ":id(.*)",
+							handler:   mockHandler,
+							route:     "/reg/:id(.*)",
+							paramName: "id",
+							regexExpr: regexAll,
+						},
+					},
+				},
+				regexChild: &node{
+					path:      ":name(^.+$)",
+					regexExpr: regexNotAll,
+					paramName: "name",
+					children: map[string]*node{
+						"abc": {
+							path:    "abc",
+							route:   "/:name(^.+$)/abc",
+							handler: mockHandler,
+						},
+					},
+				},
+			},
 		},
 	}
 	msg, ok := wantRouter.equal(r)
+	assert.True(t, ok, msg)
+	msg, ok = r.equal(*wantRouter)
 	assert.True(t, ok, msg)
 
 	r = newRouter()
@@ -194,6 +251,38 @@ func (n *node) equal(y *node) (string, bool) {
 		return fmt.Sprintf("%s 节点 path 不相等 x %s, y %s", n.path, n.path, y.path), false
 	}
 
+	if n.paramName != y.paramName {
+		return fmt.Sprintf("%s 节点 paramName 不相等 x %s, y %s", n.path, n.paramName, y.paramName), false
+	}
+
+	if n.route != y.route {
+		return fmt.Sprintf("%s 节点 route 不相等 x %s, y %s", n.path, n.route, y.route), false
+	}
+
+	var nregex, yregex string
+	if n.regexExpr != nil {
+		nregex = n.regexExpr.String()
+	}
+	if y.regexExpr != nil {
+		yregex = y.regexExpr.String()
+	}
+	if nregex != yregex {
+		return fmt.Sprintf("%s 节点 regexExpr 不相等 x %s, y %s", n.path, nregex, yregex), false
+	}
+
+	if n.regexChild != nil {
+		msg, ok := n.regexChild.equal(y.regexChild)
+		if !ok {
+			return msg, ok
+		}
+	}
+
+	if n.paramChild != nil {
+		msg, ok := n.paramChild.equal(y.paramChild)
+		if !ok {
+			return msg, ok
+		}
+	}
 	if n.starChild != nil {
 		msg, ok := n.starChild.equal(y.starChild)
 		if !ok {

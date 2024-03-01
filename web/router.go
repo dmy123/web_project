@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -19,12 +20,16 @@ type node struct {
 	handler  HandleFunc
 
 	route string
-
+	// 正则匹配
+	regexChild *node
+	regexExpr  *regexp.Regexp
 	// 通配符匹配
 	starChild *node
-
 	// 参数路径匹配
 	paramChild *node
+
+	// 参数路径or正则的参数名
+	paramName string
 }
 
 type matchInfo struct {
@@ -123,10 +128,17 @@ func (n *node) childOf(path string) (*node, bool, bool) {
 
 func (n *node) childOrCreate(path string) *node {
 	if path[0] == ':' {
+		// 判断是否为正则
+		i := strings.IndexAny(path, "(")
+		if i > 0 {
+			// 取出正则，填充paramname
+			n.regexChild = &node{path: path, paramName: path[1:i], regexExpr: regexp.MustCompile(path[i+1 : len(path)-1])}
+			return n.regexChild
+		}
 		if n.starChild != nil {
 			panic(fmt.Sprintf("web: 非法路由，已有通配符路由。不允许同时注册通配符路由和参数路由 [%s]", path))
 		}
-		n.paramChild = &node{path: path}
+		n.paramChild = &node{path: path, paramName: path[1:]}
 		return n.paramChild
 	}
 	if path == "*" {
