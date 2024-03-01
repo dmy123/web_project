@@ -137,6 +137,15 @@ func (n *node) childOf(path string) (*node, bool, bool) {
 }
 
 func (n *node) childOrCreate(path string) *node {
+	if path == "*" {
+		if n.paramChild != nil {
+			panic(fmt.Sprintf("web: 非法路由，已有路径参数路由，不允许同时注册通配符路由和参数路由"))
+		}
+		if n.regexChild != nil {
+			panic(fmt.Sprintf("web: 非法路由，已有正则路由，不允许同时注册通配符路由和参数路由"))
+		}
+	}
+
 	if path[0] == ':' {
 		// 判断是否为正则
 		i := strings.IndexAny(path, "(")
