@@ -56,6 +56,14 @@ func TestSelector_Build(t *testing.T) {
 				Args: nil,
 			},
 		},
+		{
+			name:    "where",
+			builder: (&Selector[TestModel]{}).Where(C("Age").Eq(123)),
+			wantQuery: &Query{
+				SQL:  "SELECT * FROM `TestModel` WHERE `Age` = ?;",
+				Args: []any{123},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
