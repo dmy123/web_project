@@ -57,11 +57,35 @@ func TestSelector_Build(t *testing.T) {
 			},
 		},
 		{
+			name:    "empty where",
+			builder: (&Selector[TestModel]{}).Where(),
+			wantQuery: &Query{
+				SQL: "SELECT * FROM `TestModel`;",
+				//Args: []any{123},
+			},
+		},
+		{
 			name:    "where",
 			builder: (&Selector[TestModel]{}).Where(C("Age").Eq(123)),
 			wantQuery: &Query{
-				SQL:  "SELECT * FROM `TestModel` WHERE `Age` = ?;",
+				SQL:  "SELECT * FROM `TestModel` WHERE (`Age` = ?);",
 				Args: []any{123},
+			},
+		},
+		{
+			name:    "not",
+			builder: (&Selector[TestModel]{}).Where(Not(C("Age").Eq(123))),
+			wantQuery: &Query{
+				SQL:  "SELECT * FROM `TestModel` WHERE (NOT (`Age` = ?));",
+				Args: []any{123},
+			},
+		},
+		{
+			name:    "not",
+			builder: (&Selector[TestModel]{}).Where(Not(C("Age").Eq(123)).And(C("Id").Eq(321))),
+			wantQuery: &Query{
+				SQL:  "SELECT * FROM `TestModel` WHERE ((NOT (`Age` = ?))AND (`Id` = ?));",
+				Args: []any{123, 321},
 			},
 		},
 	}
