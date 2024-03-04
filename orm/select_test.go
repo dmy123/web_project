@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"awesomeProject1/orm/internal/errs"
 	"database/sql"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -28,7 +29,8 @@ func TestSelector_Build(t *testing.T) {
 			name:    "no from",
 			builder: &Selector[TestModel]{},
 			wantQuery: &Query{
-				SQL:  "SELECT * FROM `TestModel`;",
+				//SQL:  "SELECT * FROM `TestModel`;",
+				SQL:  "SELECT * FROM `test_model`;",
 				Args: nil,
 			},
 		},
@@ -44,8 +46,9 @@ func TestSelector_Build(t *testing.T) {
 			name:    "empty from",
 			builder: (&Selector[TestModel]{}).From(""),
 			wantQuery: &Query{
-				SQL:  "SELECT * FROM `TestModel`;",
+				//SQL:  "SELECT * FROM `TestModel`;",
 				Args: nil,
+				SQL:  "SELECT * FROM `test_model`;",
 			},
 		},
 		{
@@ -60,7 +63,8 @@ func TestSelector_Build(t *testing.T) {
 			name:    "empty where",
 			builder: (&Selector[TestModel]{}).Where(),
 			wantQuery: &Query{
-				SQL: "SELECT * FROM `TestModel`;",
+				//SQL: "SELECT * FROM `TestModel`;",
+				SQL: "SELECT * FROM `test_model`;",
 				//Args: []any{123},
 			},
 		},
@@ -68,7 +72,8 @@ func TestSelector_Build(t *testing.T) {
 			name:    "where",
 			builder: (&Selector[TestModel]{}).Where(C("Age").Eq(123)),
 			wantQuery: &Query{
-				SQL:  "SELECT * FROM `TestModel` WHERE (`Age` = ?);",
+				SQL: "SELECT * FROM `test_model` WHERE (`age` = ?);",
+				//SQL:  "SELECT * FROM `TestModel` WHERE (`Age` = ?);",
 				Args: []any{123},
 			},
 		},
@@ -76,7 +81,8 @@ func TestSelector_Build(t *testing.T) {
 			name:    "not",
 			builder: (&Selector[TestModel]{}).Where(Not(C("Age").Eq(123))),
 			wantQuery: &Query{
-				SQL:  "SELECT * FROM `TestModel` WHERE (NOT (`Age` = ?));",
+				//SQL:  "SELECT * FROM `TestModel` WHERE (NOT (`Age` = ?));",
+				SQL:  "SELECT * FROM `test_model` WHERE (NOT (`age` = ?));",
 				Args: []any{123},
 			},
 		},
@@ -84,9 +90,15 @@ func TestSelector_Build(t *testing.T) {
 			name:    "not",
 			builder: (&Selector[TestModel]{}).Where(Not(C("Age").Eq(123)).And(C("Id").Eq(321))),
 			wantQuery: &Query{
-				SQL:  "SELECT * FROM `TestModel` WHERE ((NOT (`Age` = ?))AND (`Id` = ?));",
+				SQL: "SELECT * FROM `test_model` WHERE ((NOT (`age` = ?))AND (`id` = ?));",
+				//SQL:  "SELECT * FROM `TestModel` WHERE ((NOT (`Age` = ?))AND (`Id` = ?));",
 				Args: []any{123, 321},
 			},
+		},
+		{
+			name:    "invalid column",
+			builder: (&Selector[TestModel]{}).Where(Not(C("haha").Eq(123)).And(C("Id").Eq(321))),
+			wantErr: errs.NewErrUnknownField("haha"),
 		},
 	}
 	for _, tt := range tests {

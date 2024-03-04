@@ -1,14 +1,14 @@
 package orm
 
 import (
+	"awesomeProject1/orm/internal/errs"
 	"context"
-	"fmt"
-	"reflect"
 	"strings"
 )
 
 type Selector[T any] struct {
 	table string
+	model *model
 	where []Predicate
 	sb    *strings.Builder
 	args  []any
@@ -20,14 +20,20 @@ func (s Selector[T]) Build() (*Query, error) {
 	if s.sb == nil {
 		s.sb = &strings.Builder{}
 	}
+	var err error
+	s.model, err = parseModel(new(T))
+	if err != nil {
+		return nil, err
+	}
 	s.sb.WriteString("SELECT * FROM ")
 	// 反射拿到表名
 	if s.table == "" {
-		var t T
-		typ := reflect.TypeOf(t)
+		//var t T
+		//typ := reflect.TypeOf(t)
 		//s.table = typ.Name()
 		s.sb.WriteByte('`')
-		s.sb.WriteString(typ.Name())
+		//s.sb.WriteString(typ.Name())
+		s.sb.WriteString(s.model.tableName)
 		s.sb.WriteByte('`')
 	} else {
 		//sb.WriteByte('`')
@@ -56,7 +62,7 @@ func (s Selector[T]) Build() (*Query, error) {
 }
 
 func (s *Selector[T]) buildExpression(expr Expression) error {
-	switch expr.(type) {
+	switch exp := expr.(type) {
 	case nil:
 		return nil
 	case Predicate:
@@ -65,29 +71,33 @@ func (s *Selector[T]) buildExpression(expr Expression) error {
 		// p.Op
 		// p.right
 		s.sb.WriteByte('(')
-		if err := s.buildExpression(expr.(Predicate).left); err != nil {
+		if err := s.buildExpression(exp.left); err != nil {
 			return err
 		}
 		//s.sb.WriteByte(' ')
-		s.sb.WriteString(expr.(Predicate).op.String())
+		s.sb.WriteString(exp.op.String())
 		s.sb.WriteByte(' ')
 
-		if err := s.buildExpression(expr.(Predicate).right); err != nil {
+		if err := s.buildExpression(exp.right); err != nil {
 			return err
 		}
 		s.sb.WriteByte(')')
 	case Column:
 		s.sb.WriteByte('`')
-		s.sb.WriteString(expr.(Column).name)
+		fd, exist := s.model.fields[exp.name]
+		if !exist {
+			return errs.NewErrUnknownField(exp.name)
+		}
+		s.sb.WriteString(fd.colName)
 		s.sb.WriteByte('`')
 		s.sb.WriteByte(' ')
 	case Op:
 	case value:
-		s.addArg(expr.(value).val)
+		s.addArg(exp.val)
 		//s.args = append(s.args, expr.(value).val)
 		s.sb.WriteByte('?')
 	default:
-		return fmt.Errorf("orm: 不支持的表达式类型 %v", expr)
+		return errs.NewErrUnsupportedExpression(expr)
 	}
 	return nil
 }
