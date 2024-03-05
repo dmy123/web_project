@@ -8,7 +8,7 @@ import (
 
 type Selector[T any] struct {
 	table string
-	model *model
+	model *Model
 	where []Predicate
 	sb    *strings.Builder
 	args  []any
@@ -42,7 +42,7 @@ func (s Selector[T]) Build() (*Query, error) {
 	//}
 	var err error
 	//r := &registry{}
-	s.model, err = s.db.r.parseModel(new(T))
+	s.model, err = s.db.r.Registry(new(T))
 	if err != nil {
 		return nil, err
 	}
