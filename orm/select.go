@@ -12,16 +12,37 @@ type Selector[T any] struct {
 	where []Predicate
 	sb    *strings.Builder
 	args  []any
+	db    *DB
+	//r *registry
 }
+
+//func (db *DB) NewSelector[T any]() *Selector[T] {
+//	return &Selector[T]{
+//		sb: &strings.Builder{},
+//		db: db,
+//	}
+//}
+
+func NewSelector[T any](db *DB) *Selector[T] {
+	return &Selector[T]{
+		sb: &strings.Builder{},
+		db: db,
+	}
+}
+
+//func (s *Selector[T]) Demo[S any]() (*Query, error) {
+//
+//}
 
 func (s Selector[T]) Build() (*Query, error) {
 	//var sb strings.Builder
 	//sb := s.sb
-	if s.sb == nil {
-		s.sb = &strings.Builder{}
-	}
+	//if s.sb == nil {
+	//	s.sb = &strings.Builder{}
+	//}
 	var err error
-	s.model, err = parseModel(new(T))
+	//r := &registry{}
+	s.model, err = s.db.r.parseModel(new(T))
 	if err != nil {
 		return nil, err
 	}
