@@ -83,6 +83,52 @@ CREATE TABLE IF NOT EXISTS test_model(
 	cancel()
 }
 
+func TestTX(t *testing.T) {
+	db, err := sql.Open("sqlite", "file:test.db?cache=shared&mode=memory")
+	require.NoError(t, err)
+	defer db.Close()
+	db.Ping()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// select语句用query，其他用ExecContext
+	_, err = db.ExecContext(ctx, `
+CREATE TABLE IF NOT EXISTS test_model(
+    id INTEGER PRIMARY KEY,
+    first_name TEXT NOT NULL,
+    age INTEGER,
+    last_name TEXT NOT NULL
+)
+`)
+	require.NoError(t, err)
+
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
+
+	// 用？当占位符，防止sql注入
+	res, err := tx.ExecContext(ctx, "INSERT INTO `test_model`(`id`, `first_name`, `age`, `last_name`) VALUES(?,?,?,?)", 1, "tom", 18, "jerry")
+	if err != nil {
+		err = tx.Rollback()
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	require.NoError(t, err)
+	affected, err := res.RowsAffected()
+	require.NoError(t, err)
+	log.Println("受影响行 ", affected)
+	lastId, err := res.LastInsertId()
+	require.NoError(t, err)
+	log.Println("最后输入 ", lastId)
+
+	require.NoError(t, err)
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	db.Close()
+
+	cancel()
+}
+
 type TestModel struct {
 	Id        int64
 	FirstName string

@@ -1,9 +1,10 @@
 package sql
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
+	"fmt"
 )
 
 type JsonColumn[T any] struct {
@@ -25,11 +26,18 @@ func (j *JsonColumn[T]) Scan(src any) error {
 		bs = []byte(data) // 可以考虑额外处理空字符串
 	case []byte:
 		bs = data // 可以考虑额外处理[]byte{}
+	case *[]byte:
+		bs = *data
+	case sql.RawBytes:
+		bs = data
+	case *sql.RawBytes:
+		bs = *data
 	case nil:
 		// 说明数据库存的就是nil
-		return nil
+		bs = []byte("{}")
 	default:
-		return errors.New("不支持类型")
+		return fmt.Errorf("ekit：JsonColumn.Scan 不支持 src 类型 %v", src)
+		//return errors.New("不支持类型")
 	}
 	err := json.Unmarshal(bs, &j.Val)
 	if err == nil {

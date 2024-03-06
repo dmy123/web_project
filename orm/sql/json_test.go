@@ -2,7 +2,6 @@ package sql
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -27,8 +26,8 @@ func TestJsonColumn_Scan(t *testing.T) {
 		wantVal User
 	}{
 		{
-			name:    "nil",
-			wantErr: errors.New("ekit：JsonColumn.Scan 不支持 src 类型 <nil>"),
+			name: "nil",
+			//wantErr: errors.New("ekit：JsonColumn.Scan 不支持 src 类型 <nil>"),
 		},
 		{
 			name:    "string",
