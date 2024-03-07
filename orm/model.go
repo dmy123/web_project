@@ -31,6 +31,9 @@ type Field struct {
 	goName  string
 	colName string
 	typ     reflect.Type // 字段类型
+
+	// 字段相对于结构体本身的偏移量
+	offset uintptr
 }
 
 //var models = map[reflect.Type]*Model{}
@@ -140,16 +143,14 @@ func (r *registry) Registry(entity any, opts ...ModelOption) (*Model, error) {
 			// 用户未设置列名
 			colName = underscoreName(fd.Name)
 		}
-		fieldMap[fd.Name] = &Field{
+		field := &Field{
 			goName:  fd.Name,
 			colName: colName,
 			typ:     fd.Type,
+			offset:  fd.Offset,
 		}
-		columnMap[colName] = &Field{
-			goName:  fd.Name,
-			colName: colName,
-			typ:     fd.Type,
-		}
+		fieldMap[fd.Name] = field
+		columnMap[colName] = field
 	}
 
 	var tableName string

@@ -2,8 +2,8 @@ package orm
 
 import (
 	"awesomeProject1/orm/internal/errs"
+	"awesomeProject1/orm/internal/valuer"
 	"context"
-	"reflect"
 	"strings"
 )
 
@@ -142,6 +142,96 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 	return s
 }
 
+// 基于reflect
+//func (s Selector[T]) Get(ctx context.Context) (*T, error) {
+//	q, err := s.Build()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	//var db *sql.DB
+//	db := s.db.db
+//	// 发起查询，处理结果集
+//	row, err := db.QueryContext(ctx, q.SQL, q.Args...)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	if !row.Next() {
+//		// 里面是否返回error，返回error和sql包一致吗？和GetMulti保持一致
+//		return nil, ErrNoRows
+//	}
+//
+//	//s.model.fieldMap
+//
+//	// 问题： 类型、顺序要匹配
+//
+//	// select出来哪些列
+//	cs, err := row.Columns()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	tp := new(T)
+//	vals := make([]any, 0, len(cs))
+//	valElems := make([]reflect.Value, 0, len(cs))
+//	for _, c := range cs {
+//		fd, ok := s.model.columnMap[c]
+//		if !ok {
+//			return nil, errs.NewErrUnknownColumn(c)
+//		}
+//		val := reflect.New(fd.typ)
+//		vals = append(vals, val.Interface())
+//		valElems = append(valElems, val.Elem())
+//
+//		//for _, fd := range s.model.fieldMap {
+//		//	if fd.colName == c {
+//		//		// 反射创建新的实例
+//		//		val := reflect.New(fd.typ)
+//		//		vals = append(vals, val.Interface())
+//		//	}
+//		//}
+//	}
+//	err = row.Scan(vals...)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	//tpValue := reflect.ValueOf(tp)
+//	//for i, c := range cs {
+//	//	fd, ok := s.model.columnMap[c]
+//	//	if !ok {
+//	//		return nil, errs.NewErrUnknownColumn(c)
+//	//	}
+//	//	tpValue.Elem().FieldByName(fd.goName).Set(valElems[i])
+//	//	//tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+//	//	//for _, fd := range s.model.fieldMap {
+//	//	//	if fd.colName == c {
+//	//	//		tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+//	//	//	}
+//	//	//}
+//	//}
+//
+//	tpValueElem := reflect.ValueOf(tp).Elem()
+//	for i, c := range cs {
+//		fd, ok := s.model.columnMap[c]
+//		if !ok {
+//			return nil, errs.NewErrUnknownColumn(c)
+//		}
+//		tpValueElem.FieldByName(fd.goName).Set(valElems[i])
+//		//tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+//		//for _, fd := range s.model.fieldMap {
+//		//	if fd.colName == c {
+//		//		tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+//		//	}
+//		//}
+//	}
+//
+//	return tp, nil
+//
+//}
+
+// 基于unsafe
 func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 	q, err := s.Build()
 	if err != nil {
@@ -161,70 +251,40 @@ func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 		return nil, ErrNoRows
 	}
 
-	//s.model.fieldMap
-
-	// 问题： 类型、顺序要匹配
-
-	// select出来哪些列
-	cs, err := row.Columns()
-	if err != nil {
-		return nil, err
-	}
-
 	tp := new(T)
-	vals := make([]any, 0, len(cs))
-	valElems := make([]reflect.Value, 0, len(cs))
-	for _, c := range cs {
-		fd, ok := s.model.columnMap[c]
-		if !ok {
-			return nil, errs.NewErrUnknownColumn(c)
-		}
-		val := reflect.New(fd.typ)
-		vals = append(vals, val.Interface())
-		valElems = append(valElems, val.Elem())
+	var creator valuer.Creator
+	err = creator(tp).SetColumns(row)
+	return tp, err
 
-		//for _, fd := range s.model.fieldMap {
-		//	if fd.colName == c {
-		//		// 反射创建新的实例
-		//		val := reflect.New(fd.typ)
-		//		vals = append(vals, val.Interface())
-		//	}
-		//}
-	}
-	err = row.Scan(vals...)
-	if err != nil {
-		return nil, err
-	}
-
-	//tpValue := reflect.ValueOf(tp)
-	//for i, c := range cs {
+	////s.model.fieldMap
+	//
+	//// 问题： 类型、顺序要匹配
+	//
+	//// select出来哪些列
+	//cs, err := row.Columns()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//tp := new(T)
+	//vals := make([]any, 0, len(cs))
+	//address := reflect.ValueOf(tp).UnsafePointer()
+	//for _, c := range cs {
 	//	fd, ok := s.model.columnMap[c]
 	//	if !ok {
 	//		return nil, errs.NewErrUnknownColumn(c)
 	//	}
-	//	tpValue.Elem().FieldByName(fd.goName).Set(valElems[i])
-	//	//tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
-	//	//for _, fd := range s.model.fieldMap {
-	//	//	if fd.colName == c {
-	//	//		tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
-	//	//	}
-	//	//}
+	//	// 起始地址+偏移量
+	//	fdAddress := unsafe.Pointer(uintptr(address) + fd.offset)
+	//
+	//	// 反射在特定地址上，创建特定类型实例，原本类型的指针类型；case：fd.typ=int, val是*int
+	//	val := reflect.NewAt(fd.typ, fdAddress)
+	//	vals = append(vals, val.Interface())
 	//}
-
-	tpValueElem := reflect.ValueOf(tp).Elem()
-	for i, c := range cs {
-		fd, ok := s.model.columnMap[c]
-		if !ok {
-			return nil, errs.NewErrUnknownColumn(c)
-		}
-		tpValueElem.FieldByName(fd.goName).Set(valElems[i])
-		//tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
-		//for _, fd := range s.model.fieldMap {
-		//	if fd.colName == c {
-		//		tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
-		//	}
-		//}
-	}
+	//err = row.Scan(vals...)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return tp, nil
 
