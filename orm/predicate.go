@@ -13,6 +13,7 @@ func (o Op) expr() {
 
 const (
 	opEq  Op = "="
+	opLt  Op = "<"
 	opNot Op = "NOT"
 	opAnd Op = "AND"
 	opOr  Op = "OR"
@@ -49,6 +50,16 @@ func (c Column) Eq(arg any) Predicate {
 	return Predicate{
 		left: c,
 		op:   opEq,
+		right: value{
+			val: arg,
+		},
+	}
+}
+
+func (c Column) Lt(arg any) Predicate {
+	return Predicate{
+		left: c,
+		op:   opLt,
 		right: value{
 			val: arg,
 		},

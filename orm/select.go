@@ -3,6 +3,7 @@ package orm
 import (
 	"awesomeProject1/orm/internal/errs"
 	"context"
+	"reflect"
 	"strings"
 )
 
@@ -34,7 +35,7 @@ func NewSelector[T any](db *DB) *Selector[T] {
 //
 //}
 
-func (s Selector[T]) Build() (*Query, error) {
+func (s *Selector[T]) Build() (*Query, error) {
 	//var sb strings.Builder
 	//sb := s.sb
 	//if s.sb == nil {
@@ -105,7 +106,7 @@ func (s *Selector[T]) buildExpression(expr Expression) error {
 		s.sb.WriteByte(')')
 	case Column:
 		s.sb.WriteByte('`')
-		fd, exist := s.model.fields[exp.name]
+		fd, exist := s.model.fieldMap[exp.name]
 		if !exist {
 			return errs.NewErrUnknownField(exp.name)
 		}
@@ -142,11 +143,106 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 }
 
 func (s Selector[T]) Get(ctx context.Context) (*T, error) {
-	//TODO implement me
-	panic("implement me")
+	q, err := s.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	//var db *sql.DB
+	db := s.db.db
+	// 发起查询，处理结果集
+	row, err := db.QueryContext(ctx, q.SQL, q.Args...)
+	if err != nil {
+		return nil, err
+	}
+
+	if !row.Next() {
+		// 里面是否返回error，返回error和sql包一致吗？和GetMulti保持一致
+		return nil, ErrNoRows
+	}
+
+	//s.model.fieldMap
+
+	// 问题： 类型、顺序要匹配
+
+	// select出来哪些列
+	cs, err := row.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	tp := new(T)
+	vals := make([]any, 0, len(cs))
+	valElems := make([]reflect.Value, 0, len(cs))
+	for _, c := range cs {
+		fd, ok := s.model.columnMap[c]
+		if !ok {
+			return nil, errs.NewErrUnknownColumn(c)
+		}
+		val := reflect.New(fd.typ)
+		vals = append(vals, val.Interface())
+		valElems = append(valElems, val.Elem())
+
+		//for _, fd := range s.model.fieldMap {
+		//	if fd.colName == c {
+		//		// 反射创建新的实例
+		//		val := reflect.New(fd.typ)
+		//		vals = append(vals, val.Interface())
+		//	}
+		//}
+	}
+	err = row.Scan(vals...)
+	if err != nil {
+		return nil, err
+	}
+
+	//tpValue := reflect.ValueOf(tp)
+	//for i, c := range cs {
+	//	fd, ok := s.model.columnMap[c]
+	//	if !ok {
+	//		return nil, errs.NewErrUnknownColumn(c)
+	//	}
+	//	tpValue.Elem().FieldByName(fd.goName).Set(valElems[i])
+	//	//tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+	//	//for _, fd := range s.model.fieldMap {
+	//	//	if fd.colName == c {
+	//	//		tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+	//	//	}
+	//	//}
+	//}
+
+	tpValueElem := reflect.ValueOf(tp).Elem()
+	for i, c := range cs {
+		fd, ok := s.model.columnMap[c]
+		if !ok {
+			return nil, errs.NewErrUnknownColumn(c)
+		}
+		tpValueElem.FieldByName(fd.goName).Set(valElems[i])
+		//tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+		//for _, fd := range s.model.fieldMap {
+		//	if fd.colName == c {
+		//		tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+		//	}
+		//}
+	}
+
+	return tp, nil
+
 }
 
 func (s Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {
-	//TODO implement me
-	panic("implement me")
+	q, err := s.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	//var db *sql.DB
+	db := s.db.db
+	// 发起查询，处理结果集
+	rows, err := db.QueryContext(ctx, q.SQL, q.Args)
+
+	for rows.Next() {
+
+	}
+	return nil, nil
 }

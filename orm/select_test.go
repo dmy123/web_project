@@ -2,13 +2,19 @@ package orm
 
 import (
 	"awesomeProject1/orm/internal/errs"
+	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
+	_ "github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestSelector_Build(t *testing.T) {
-	//db, err := NewDB()
+	//db, err := Open()
 	//require.NoError(t, err)
 	//type testCase[T any] struct {
 	//	name    string
@@ -30,7 +36,7 @@ func TestSelector_Build(t *testing.T) {
 		{
 			name: "no from",
 			//builder: &Selector[TestModel]{},
-			builder: NewSelector[TestModel](MustNewDB()),
+			builder: NewSelector[TestModel](memoryDB(t)),
 			wantQuery: &Query{
 				//SQL:  "SELECT * FROM `TestModel`;",
 				SQL:  "SELECT * FROM `test_model`;",
@@ -39,7 +45,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "from",
-			builder: NewSelector[TestModel](MustNewDB()).From("`TestModel`"),
+			builder: NewSelector[TestModel](memoryDB(t)).From("`TestModel`"),
 			wantQuery: &Query{
 				SQL:  "SELECT * FROM `TestModel`;",
 				Args: nil,
@@ -48,7 +54,7 @@ func TestSelector_Build(t *testing.T) {
 		{
 			name: "empty from",
 			//builder: (&Selector[TestModel]{}).From(""),
-			builder: NewSelector[TestModel](MustNewDB()).From(""),
+			builder: NewSelector[TestModel](memoryDB(t)).From(""),
 			wantQuery: &Query{
 				//SQL:  "SELECT * FROM `TestModel`;",
 				Args: nil,
@@ -57,7 +63,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "from db",
-			builder: NewSelector[TestModel](MustNewDB()).From("`test_db`.`test_model`"),
+			builder: NewSelector[TestModel](memoryDB(t)).From("`test_db`.`test_model`"),
 			wantQuery: &Query{
 				SQL:  "SELECT * FROM `test_db`.`test_model`;",
 				Args: nil,
@@ -65,7 +71,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "empty where",
-			builder: NewSelector[TestModel](MustNewDB()).Where(),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(),
 			wantQuery: &Query{
 				//SQL: "SELECT * FROM `TestModel`;",
 				SQL: "SELECT * FROM `test_model`;",
@@ -74,7 +80,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "where",
-			builder: NewSelector[TestModel](MustNewDB()).Where(C("Age").Eq(123)),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(C("Age").Eq(123)),
 			wantQuery: &Query{
 				SQL: "SELECT * FROM `test_model` WHERE (`age` = ?);",
 				//SQL:  "SELECT * FROM `TestModel` WHERE (`Age` = ?);",
@@ -83,7 +89,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "not",
-			builder: NewSelector[TestModel](MustNewDB()).Where(Not(C("Age").Eq(123))),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(Not(C("Age").Eq(123))),
 			wantQuery: &Query{
 				//SQL:  "SELECT * FROM `TestModel` WHERE (NOT (`Age` = ?));",
 				SQL:  "SELECT * FROM `test_model` WHERE (NOT (`age` = ?));",
@@ -92,7 +98,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "not",
-			builder: NewSelector[TestModel](MustNewDB()).Where(Not(C("Age").Eq(123)).And(C("Id").Eq(321))),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(Not(C("Age").Eq(123)).And(C("Id").Eq(321))),
 			wantQuery: &Query{
 				SQL: "SELECT * FROM `test_model` WHERE ((NOT (`age` = ?))AND (`id` = ?));",
 				//SQL:  "SELECT * FROM `TestModel` WHERE ((NOT (`Age` = ?))AND (`Id` = ?));",
@@ -101,7 +107,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "invalid column",
-			builder: NewSelector[TestModel](MustNewDB()).Where(Not(C("haha").Eq(123)).And(C("Id").Eq(321))),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(Not(C("haha").Eq(123)).And(C("Id").Eq(321))),
 			wantErr: errs.NewErrUnknownField("haha"),
 		},
 	}
@@ -130,4 +136,90 @@ type TestModel struct {
 	FirstName string
 	Age       int8
 	LastName  *sql.NullString
+}
+
+func memoryDB(T *testing.T) *DB {
+	db, err := Open("sqlite", "file:test.db?cache=shared&mode=memory")
+	require.NoError(T, err)
+	return db
+}
+
+func TestSelector_Get(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	db, err := OpenDB(mockDB)
+	require.NoError(t, err)
+
+	mock.ExpectQuery("SELECT .*").WillReturnError(errors.New("query error"))
+
+	rows := sqlmock.NewRows([]string{"id", "first_name", "age", "last_name"})
+	mock.ExpectQuery("SELECT .*").WillReturnRows(rows)
+
+	//data
+	rows = sqlmock.NewRows([]string{"id", "first_name", "age", "last_name"})
+	rows.AddRow("1", "Tom", "18", "Jerry")
+	mock.ExpectQuery("SELECT .*").WillReturnRows(rows)
+
+	//scan err
+	rows = sqlmock.NewRows([]string{"id", "first_name", "age", "last_name"})
+	rows.AddRow("ab", "Tom", "18", "Jerry")
+	mock.ExpectQuery("SELECT .*").WillReturnRows(rows)
+
+	fmt.Println(mock)
+	type args struct {
+		ctx context.Context
+	}
+	type testCase[T any] struct {
+		name string
+		s    *Selector[T]
+		//args    args
+		want    *T
+		wantErr error
+	}
+	tests := []testCase[TestModel]{
+		// TODO: Add test cases.
+		//{
+		//	name:    "invalid query",
+		//	s:       NewSelector[TestModel](db).Where(C("XXX").Eq(1)),
+		//	wantErr: errs.NewErrUnknownField("XXX"),
+		//},
+		{
+			name:    "query error",
+			s:       NewSelector[TestModel](db).Where(C("Id").Eq(1)),
+			wantErr: errors.New("query error"),
+		},
+		{
+			name:    "no rows",
+			s:       NewSelector[TestModel](db).Where(C("Id").Lt(1)),
+			wantErr: ErrNoRows,
+		},
+		{
+			name: "data",
+			s:    NewSelector[TestModel](db).Where(C("Id").Lt(1)),
+			want: &TestModel{
+				Id:        1,
+				Age:       18,
+				FirstName: "Tom",
+				LastName: &sql.NullString{
+					String: "Jerry",
+					Valid:  true,
+				},
+			},
+		},
+		//{
+		//	name:    "scan err",
+		//	s:       NewSelector[TestModel](db).Where(C("Id").Lt(1)),
+		//	wantErr: errs.ErrNoRows,
+		//},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.Get(context.Background())
+			if err != nil || tt.wantErr != nil {
+				assert.Equal(t, err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want, got, "Get(%v)", context.Background())
+		})
+	}
 }
