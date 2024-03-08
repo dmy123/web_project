@@ -42,8 +42,6 @@ func BenchmarkSetColumns(b *testing.B) {
 	})
 
 	b.Run("unsafe", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			fn(b, NewUnsafeValue)
-		}
+		fn(b, NewUnsafeValue)
 	})
 }

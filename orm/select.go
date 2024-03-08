@@ -2,7 +2,6 @@ package orm
 
 import (
 	"awesomeProject1/orm/internal/errs"
-	"awesomeProject1/orm/internal/valuer"
 	"awesomeProject1/orm/model"
 	"context"
 	"strings"
@@ -253,8 +252,8 @@ func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 	}
 
 	tp := new(T)
-	var creator valuer.Creator
-	err = creator(s.model, tp).SetColumns(row)
+	//var creator valuer.Creator
+	err = s.db.creator(s.model, tp).SetColumns(row)
 	return tp, err
 
 	////s.model.FieldMap

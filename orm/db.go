@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"awesomeProject1/orm/internal/valuer"
 	"awesomeProject1/orm/model"
 	"database/sql"
 )
@@ -8,8 +9,9 @@ import (
 type DBOption func(db *DB)
 
 type DB struct {
-	r  *model.Registry
-	db *sql.DB
+	r       *model.Registry
+	db      *sql.DB
+	creator valuer.Creator
 }
 
 func Open(driver string, dataSourceName string, opts ...DBOption) (*DB, error) {
@@ -38,11 +40,18 @@ func MustOpen(driver string, dataSourceName string, opts ...DBOption) *DB {
 
 func OpenDB(db *sql.DB, opts ...DBOption) (*DB, error) {
 	res := &DB{
-		r:  model.MustNewRegistry(),
-		db: db,
+		r:       model.MustNewRegistry(),
+		db:      db,
+		creator: valuer.NewUnsafeValue,
 	}
 	for _, opt := range opts {
 		opt(res)
 	}
 	return res, nil
+}
+
+func DBUseReflect() DBOption {
+	return func(db *DB) {
+		db.creator = valuer.NewReflectValue
+	}
 }
