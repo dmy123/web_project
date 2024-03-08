@@ -1,4 +1,4 @@
-package orm
+package model
 
 import (
 	"awesomeProject1/orm/internal/errs"
@@ -12,46 +12,50 @@ const (
 	tagColumn = "column"
 )
 
-type Registry interface {
+type RegistryInterface interface {
 	Get(val any) (*Model, error)
 	Registry(val any, opts ...ModelOption) (*Model, error)
 }
 
+type TableName interface {
+	TableName() string
+}
+
 type Model struct {
-	tableName string
+	TableName string
 	// 字段名到字段的映射
-	fieldMap map[string]*Field
+	FieldMap map[string]*Field
 	// 列名到字段的映射
-	columnMap map[string]*Field
+	ColumnMap map[string]*Field
 }
 
 type ModelOption func(m *Model) error
 
 type Field struct {
-	goName  string
-	colName string
-	typ     reflect.Type // 字段类型
+	GoName  string
+	ColName string
+	Typ     reflect.Type // 字段类型
 
 	// 字段相对于结构体本身的偏移量
-	offset uintptr
+	Offset uintptr
 }
 
 //var models = map[reflect.Type]*Model{}
 
 //// 法一，并发工具
-//type registry struct {
+//type Registry struct {
 //	lock   sync.RWMutex
 //	models map[reflect.Type]*Model
 //}
 //
-//func newRegistry() (*registry, error) {
-//	res := &registry{
+//func newRegistry() (*Registry, error) {
+//	res := &Registry{
 //		models: make(map[reflect.Type]*Model, 64),
 //	}
 //	return res, nil
 //}
 
-func mustNewRegistry() *registry {
+func MustNewRegistry() *Registry {
 	res, err := newRegistry()
 	if err != nil {
 		panic(err)
@@ -59,12 +63,12 @@ func mustNewRegistry() *registry {
 	return res
 }
 
-//func (r *registry) Get1(val any) (m *Model, err error) {
-//	typ := reflect.TypeOf(val)
+//func (r *Registry) Get1(val any) (m *Model, err error) {
+//	Typ := reflect.TypeOf(val)
 //	// double check
 //	r.lock.RLock()
 //	var ok bool
-//	m, ok = r.models[typ]
+//	m, ok = r.models[Typ]
 //	r.lock.RUnlock()
 //	if ok {
 //		return m, nil
@@ -72,7 +76,7 @@ func mustNewRegistry() *registry {
 //	r.lock.Lock()
 //	defer r.lock.Unlock()
 //
-//	m, ok = r.models[typ]
+//	m, ok = r.models[Typ]
 //	if ok {
 //		return m, nil
 //	}
@@ -81,33 +85,33 @@ func mustNewRegistry() *registry {
 //	if err != nil {
 //		return nil, err
 //	}
-//	r.models[typ] = m
+//	r.models[Typ] = m
 //
 //	//if !ok {
 //	//	m, err = r.Registry(val)
 //	//	if err != nil {
 //	//		return nil, err
 //	//	}
-//	//	r.models[typ] = m
+//	//	r.models[Typ] = m
 //	//}
 //	return m, nil
 //}
 //
-//var defaultRegistry = &registry{
+//var defaultRegistry = &Registry{
 //	models: map[reflect.Type]*Model{},
 //}
 
 // 法二，
-type registry struct {
+type Registry struct {
 	models sync.Map
 }
 
-func newRegistry() (*registry, error) {
-	res := &registry{}
+func newRegistry() (*Registry, error) {
+	res := &Registry{}
 	return res, nil
 }
 
-func (r *registry) Get(val any) (*Model, error) {
+func (r *Registry) Get(val any) (*Model, error) {
 	typ := reflect.TypeOf(val)
 	m, ok := r.models.Load(typ)
 	if ok {
@@ -118,12 +122,12 @@ func (r *registry) Get(val any) (*Model, error) {
 	if err != nil {
 		return nil, err
 	}
-	//r.models.Store(typ, m) // 同时解析会有覆盖的小问题
+	//r.models.Store(Typ, m) // 同时解析会有覆盖的小问题
 	return m.(*Model), err
 }
 
 // 限制只能使用一级指针
-func (r *registry) Registry(entity any, opts ...ModelOption) (*Model, error) {
+func (r *Registry) Registry(entity any, opts ...ModelOption) (*Model, error) {
 	typ := reflect.TypeOf(entity)
 	if typ.Kind() != reflect.Pointer || typ.Elem().Kind() != reflect.Struct {
 		return nil, errs.ErrPointerOnly
@@ -144,10 +148,10 @@ func (r *registry) Registry(entity any, opts ...ModelOption) (*Model, error) {
 			colName = underscoreName(fd.Name)
 		}
 		field := &Field{
-			goName:  fd.Name,
-			colName: colName,
-			typ:     fd.Type,
-			offset:  fd.Offset,
+			GoName:  fd.Name,
+			ColName: colName,
+			Typ:     fd.Type,
+			Offset:  fd.Offset,
 		}
 		fieldMap[fd.Name] = field
 		columnMap[colName] = field
@@ -163,9 +167,9 @@ func (r *registry) Registry(entity any, opts ...ModelOption) (*Model, error) {
 	}
 
 	res := &Model{
-		tableName: tableName,
-		fieldMap:  fieldMap,
-		columnMap: columnMap,
+		TableName: tableName,
+		FieldMap:  fieldMap,
+		ColumnMap: columnMap,
 	}
 
 	for _, opt := range opts {
@@ -182,8 +186,8 @@ func (r *registry) Registry(entity any, opts ...ModelOption) (*Model, error) {
 
 func ModelWithTableName(tableName string) ModelOption {
 	return func(m *Model) error {
-		m.tableName = tableName
-		//if tableName == ""{
+		m.TableName = tableName
+		//if TableName == ""{
 		//	return err
 		//}
 		return nil
@@ -192,11 +196,11 @@ func ModelWithTableName(tableName string) ModelOption {
 
 func ModelWithColumnName(field string, colName string) ModelOption {
 	return func(m *Model) error {
-		fd, ok := m.fieldMap[field]
+		fd, ok := m.FieldMap[field]
 		if !ok {
 			return errs.NewErrUnknownField(field)
 		}
-		fd.colName = colName
+		fd.ColName = colName
 		return nil
 	}
 }
@@ -205,7 +209,7 @@ type User struct {
 	ID uint64 `orm:"column=id"`
 }
 
-func (r *registry) parseTag(tag reflect.StructTag) (map[string]string, error) {
+func (r *Registry) parseTag(tag reflect.StructTag) (map[string]string, error) {
 	ormTag, ok := tag.Lookup("orm")
 	if !ok {
 		return map[string]string{}, nil

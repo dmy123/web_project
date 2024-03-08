@@ -1,10 +1,13 @@
 package valuer
 
-import "database/sql"
+import (
+	"awesomeProject1/orm/model"
+	"database/sql"
+)
 
-type Valuer interface {
+type Value interface {
 	SetColumns(rows *sql.Rows) error
 }
 
 // 简单的函数式工厂接口
-type Creator func(entity any) Valuer
+type Creator func(model *model.Model, entity any) Value

@@ -1,11 +1,14 @@
 package orm
 
-import "database/sql"
+import (
+	"awesomeProject1/orm/model"
+	"database/sql"
+)
 
 type DBOption func(db *DB)
 
 type DB struct {
-	r  *registry
+	r  *model.Registry
 	db *sql.DB
 }
 
@@ -16,7 +19,7 @@ func Open(driver string, dataSourceName string, opts ...DBOption) (*DB, error) {
 	}
 	return OpenDB(db, opts...)
 	//res := &DB{
-	//	r: mustNewRegistry(),
+	//	r: MustNewRegistry(),
 	//	db: db,
 	//}
 	//for _, opt := range opts {
@@ -35,7 +38,7 @@ func MustOpen(driver string, dataSourceName string, opts ...DBOption) *DB {
 
 func OpenDB(db *sql.DB, opts ...DBOption) (*DB, error) {
 	res := &DB{
-		r:  mustNewRegistry(),
+		r:  model.MustNewRegistry(),
 		db: db,
 	}
 	for _, opt := range opts {

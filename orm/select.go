@@ -3,13 +3,14 @@ package orm
 import (
 	"awesomeProject1/orm/internal/errs"
 	"awesomeProject1/orm/internal/valuer"
+	"awesomeProject1/orm/model"
 	"context"
 	"strings"
 )
 
 type Selector[T any] struct {
 	table string
-	model *Model
+	model *model.Model
 	where []Predicate
 	sb    *strings.Builder
 	args  []any
@@ -51,11 +52,11 @@ func (s *Selector[T]) Build() (*Query, error) {
 	// 反射拿到表名
 	if s.table == "" {
 		//var t T
-		//typ := reflect.TypeOf(t)
-		//s.table = typ.Name()
+		//Typ := reflect.TypeOf(t)
+		//s.table = Typ.Name()
 		s.sb.WriteByte('`')
-		//s.sb.WriteString(typ.Name())
-		s.sb.WriteString(s.model.tableName)
+		//s.sb.WriteString(Typ.Name())
+		s.sb.WriteString(s.model.TableName)
 		s.sb.WriteByte('`')
 	} else {
 		//sb.WriteByte('`')
@@ -106,11 +107,11 @@ func (s *Selector[T]) buildExpression(expr Expression) error {
 		s.sb.WriteByte(')')
 	case Column:
 		s.sb.WriteByte('`')
-		fd, exist := s.model.fieldMap[exp.name]
+		fd, exist := s.model.FieldMap[exp.name]
 		if !exist {
 			return errs.NewErrUnknownField(exp.name)
 		}
-		s.sb.WriteString(fd.colName)
+		s.sb.WriteString(fd.ColName)
 		s.sb.WriteByte('`')
 		s.sb.WriteByte(' ')
 	case Op:
@@ -162,7 +163,7 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //		return nil, ErrNoRows
 //	}
 //
-//	//s.model.fieldMap
+//	//s.model.FieldMap
 //
 //	// 问题： 类型、顺序要匹配
 //
@@ -176,18 +177,18 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //	vals := make([]any, 0, len(cs))
 //	valElems := make([]reflect.Value, 0, len(cs))
 //	for _, c := range cs {
-//		fd, ok := s.model.columnMap[c]
+//		fd, ok := s.model.ColumnMap[c]
 //		if !ok {
 //			return nil, errs.NewErrUnknownColumn(c)
 //		}
-//		val := reflect.New(fd.typ)
+//		val := reflect.New(fd.Typ)
 //		vals = append(vals, val.Interface())
 //		valElems = append(valElems, val.Elem())
 //
-//		//for _, fd := range s.model.fieldMap {
-//		//	if fd.colName == c {
+//		//for _, fd := range s.model.FieldMap {
+//		//	if fd.ColName == c {
 //		//		// 反射创建新的实例
-//		//		val := reflect.New(fd.typ)
+//		//		val := reflect.New(fd.Typ)
 //		//		vals = append(vals, val.Interface())
 //		//	}
 //		//}
@@ -199,30 +200,30 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //
 //	//tpValue := reflect.ValueOf(tp)
 //	//for i, c := range cs {
-//	//	fd, ok := s.model.columnMap[c]
+//	//	fd, ok := s.model.ColumnMap[c]
 //	//	if !ok {
 //	//		return nil, errs.NewErrUnknownColumn(c)
 //	//	}
-//	//	tpValue.Elem().FieldByName(fd.goName).Set(valElems[i])
-//	//	//tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
-//	//	//for _, fd := range s.model.fieldMap {
-//	//	//	if fd.colName == c {
-//	//	//		tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+//	//	tpValue.Elem().FieldByName(fd.GoName).Set(valElems[i])
+//	//	//tpValue.Elem().FieldByName(fd.GoName).Set(reflect.ValueOf(vals[i]).Elem())
+//	//	//for _, fd := range s.model.FieldMap {
+//	//	//	if fd.ColName == c {
+//	//	//		tpValue.Elem().FieldByName(fd.GoName).Set(reflect.ValueOf(vals[i]).Elem())
 //	//	//	}
 //	//	//}
 //	//}
 //
 //	tpValueElem := reflect.ValueOf(tp).Elem()
 //	for i, c := range cs {
-//		fd, ok := s.model.columnMap[c]
+//		fd, ok := s.model.ColumnMap[c]
 //		if !ok {
 //			return nil, errs.NewErrUnknownColumn(c)
 //		}
-//		tpValueElem.FieldByName(fd.goName).Set(valElems[i])
-//		//tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
-//		//for _, fd := range s.model.fieldMap {
-//		//	if fd.colName == c {
-//		//		tpValue.Elem().FieldByName(fd.goName).Set(reflect.ValueOf(vals[i]).Elem())
+//		tpValueElem.FieldByName(fd.GoName).Set(valElems[i])
+//		//tpValue.Elem().FieldByName(fd.GoName).Set(reflect.ValueOf(vals[i]).Elem())
+//		//for _, fd := range s.model.FieldMap {
+//		//	if fd.ColName == c {
+//		//		tpValue.Elem().FieldByName(fd.GoName).Set(reflect.ValueOf(vals[i]).Elem())
 //		//	}
 //		//}
 //	}
@@ -253,10 +254,10 @@ func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 
 	tp := new(T)
 	var creator valuer.Creator
-	err = creator(tp).SetColumns(row)
+	err = creator(s.model, tp).SetColumns(row)
 	return tp, err
 
-	////s.model.fieldMap
+	////s.model.FieldMap
 	//
 	//// 问题： 类型、顺序要匹配
 	//
@@ -270,15 +271,15 @@ func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 	//vals := make([]any, 0, len(cs))
 	//address := reflect.ValueOf(tp).UnsafePointer()
 	//for _, c := range cs {
-	//	fd, ok := s.model.columnMap[c]
+	//	fd, ok := s.model.ColumnMap[c]
 	//	if !ok {
 	//		return nil, errs.NewErrUnknownColumn(c)
 	//	}
 	//	// 起始地址+偏移量
-	//	fdAddress := unsafe.Pointer(uintptr(address) + fd.offset)
+	//	fdAddress := unsafe.Pointer(uintptr(address) + fd.Offset)
 	//
-	//	// 反射在特定地址上，创建特定类型实例，原本类型的指针类型；case：fd.typ=int, val是*int
-	//	val := reflect.NewAt(fd.typ, fdAddress)
+	//	// 反射在特定地址上，创建特定类型实例，原本类型的指针类型；case：fd.Typ=int, val是*int
+	//	val := reflect.NewAt(fd.Typ, fdAddress)
 	//	vals = append(vals, val.Interface())
 	//}
 	//err = row.Scan(vals...)
