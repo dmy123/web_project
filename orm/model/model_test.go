@@ -19,7 +19,7 @@ func Test_parseModel(t *testing.T) {
 		args    args
 		want    *Model
 		wantErr error
-		opts    []ModelOption
+		opts    []Option
 	}{
 		// TODO: Add test cases.
 		{
@@ -460,7 +460,7 @@ func (c *EmptyTableNamePtr) TableName() string {
 
 func TestModelWithTableName(t *testing.T) {
 	r, _ := newRegistry()
-	m, err := r.Registry(&TestModel{}, ModelWithTableName("test_model_t"))
+	m, err := r.Registry(&TestModel{}, WithTableName("test_model_t"))
 	assert.Equal(t, err, nil)
 	assert.Equal(t, m.TableName, "test_model_t")
 }
@@ -497,7 +497,7 @@ func TestModelWithColumnName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r, _ := newRegistry()
-			m, err := r.Registry(&TestModel{}, ModelWithColumnName(tt.args.field, tt.args.colName))
+			m, err := r.Registry(&TestModel{}, WithColumnName(tt.args.field, tt.args.colName))
 			assert.Equal(t, err, tt.wantErr)
 			if err != nil {
 				return

@@ -14,7 +14,7 @@ const (
 
 type RegistryInterface interface {
 	Get(val any) (*Model, error)
-	Registry(val any, opts ...ModelOption) (*Model, error)
+	Registry(val any, opts ...Option) (*Model, error)
 }
 
 type TableName interface {
@@ -29,7 +29,7 @@ type Model struct {
 	ColumnMap map[string]*Field
 }
 
-type ModelOption func(m *Model) error
+type Option func(m *Model) error
 
 type Field struct {
 	GoName  string
@@ -127,7 +127,7 @@ func (r *Registry) Get(val any) (*Model, error) {
 }
 
 // 限制只能使用一级指针
-func (r *Registry) Registry(entity any, opts ...ModelOption) (*Model, error) {
+func (r *Registry) Registry(entity any, opts ...Option) (*Model, error) {
 	typ := reflect.TypeOf(entity)
 	if typ.Kind() != reflect.Pointer || typ.Elem().Kind() != reflect.Struct {
 		return nil, errs.ErrPointerOnly
@@ -184,7 +184,7 @@ func (r *Registry) Registry(entity any, opts ...ModelOption) (*Model, error) {
 	return res, nil
 }
 
-func ModelWithTableName(tableName string) ModelOption {
+func WithTableName(tableName string) Option {
 	return func(m *Model) error {
 		m.TableName = tableName
 		//if TableName == ""{
@@ -194,7 +194,7 @@ func ModelWithTableName(tableName string) ModelOption {
 	}
 }
 
-func ModelWithColumnName(field string, colName string) ModelOption {
+func WithColumnName(field string, colName string) Option {
 	return func(m *Model) error {
 		fd, ok := m.FieldMap[field]
 		if !ok {

@@ -36,7 +36,7 @@ func TestSelector_Build(t *testing.T) {
 		{
 			name: "no from",
 			//builder: &Selector[TestModel]{},
-			builder: NewSelector[TestModel](MemoryDB(t)),
+			builder: NewSelector[TestModel](memoryDB(t)),
 			wantQuery: &Query{
 				//SQL:  "SELECT * FROM `TestModel`;",
 				SQL:  "SELECT * FROM `test_model`;",
@@ -45,7 +45,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "from",
-			builder: NewSelector[TestModel](MemoryDB(t)).From("`TestModel`"),
+			builder: NewSelector[TestModel](memoryDB(t)).From("`TestModel`"),
 			wantQuery: &Query{
 				SQL:  "SELECT * FROM `TestModel`;",
 				Args: nil,
@@ -54,7 +54,7 @@ func TestSelector_Build(t *testing.T) {
 		{
 			name: "empty from",
 			//builder: (&Selector[TestModel]{}).From(""),
-			builder: NewSelector[TestModel](MemoryDB(t)).From(""),
+			builder: NewSelector[TestModel](memoryDB(t)).From(""),
 			wantQuery: &Query{
 				//SQL:  "SELECT * FROM `TestModel`;",
 				Args: nil,
@@ -63,7 +63,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "from db",
-			builder: NewSelector[TestModel](MemoryDB(t)).From("`test_db`.`test_model`"),
+			builder: NewSelector[TestModel](memoryDB(t)).From("`test_db`.`test_model`"),
 			wantQuery: &Query{
 				SQL:  "SELECT * FROM `test_db`.`test_model`;",
 				Args: nil,
@@ -71,7 +71,7 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "empty where",
-			builder: NewSelector[TestModel](MemoryDB(t)).Where(),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(),
 			wantQuery: &Query{
 				//SQL: "SELECT * FROM `TestModel`;",
 				SQL: "SELECT * FROM `test_model`;",
@@ -80,35 +80,59 @@ func TestSelector_Build(t *testing.T) {
 		},
 		{
 			name:    "where",
-			builder: NewSelector[TestModel](MemoryDB(t)).Where(C("Age").Eq(123)),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(C("Age").Eq(123)),
 			wantQuery: &Query{
-				SQL: "SELECT * FROM `test_model` WHERE (`age` = ?);",
+				SQL: "SELECT * FROM `test_model` WHERE (`age`= ?);",
 				//SQL:  "SELECT * FROM `TestModel` WHERE (`Age` = ?);",
 				Args: []any{123},
 			},
 		},
 		{
 			name:    "not",
-			builder: NewSelector[TestModel](MemoryDB(t)).Where(Not(C("Age").Eq(123))),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(Not(C("Age").Eq(123))),
 			wantQuery: &Query{
 				//SQL:  "SELECT * FROM `TestModel` WHERE (NOT (`Age` = ?));",
-				SQL:  "SELECT * FROM `test_model` WHERE (NOT (`age` = ?));",
+				SQL:  "SELECT * FROM `test_model` WHERE (NOT (`age`= ?));",
 				Args: []any{123},
 			},
 		},
 		{
 			name:    "not",
-			builder: NewSelector[TestModel](MemoryDB(t)).Where(Not(C("Age").Eq(123)).And(C("Id").Eq(321))),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(Not(C("Age").Eq(123)).And(C("Id").Eq(321))),
 			wantQuery: &Query{
-				SQL: "SELECT * FROM `test_model` WHERE ((NOT (`age` = ?))AND (`id` = ?));",
+				SQL: "SELECT * FROM `test_model` WHERE ((NOT (`age`= ?))AND (`id`= ?));",
 				//SQL:  "SELECT * FROM `TestModel` WHERE ((NOT (`Age` = ?))AND (`Id` = ?));",
 				Args: []any{123, 321},
 			},
 		},
 		{
 			name:    "invalid column",
-			builder: NewSelector[TestModel](MemoryDB(t)).Where(Not(C("haha").Eq(123)).And(C("Id").Eq(321))),
+			builder: NewSelector[TestModel](memoryDB(t)).Where(Not(C("haha").Eq(123)).And(C("Id").Eq(321))),
 			wantErr: errs.NewErrUnknownField("haha"),
+		},
+		{
+			name:    "raw expression as predicate",
+			builder: NewSelector[TestModel](memoryDB(t)).Where(Raw("`id`<?", 12).AsPredicate()),
+			wantQuery: &Query{
+				SQL:  "SELECT * FROM `test_model` WHERE ((`id`<?));",
+				Args: []any{12},
+			},
+		},
+		{
+			name:    "raw expression used in predicate",
+			builder: NewSelector[TestModel](memoryDB(t)).Where(C("Id").Eq(Raw("`age`+ ?", 1))),
+			wantQuery: &Query{
+				SQL:  "SELECT * FROM `test_model` WHERE (`id`= (`age`+ ?));",
+				Args: []any{1},
+			},
+		},
+		{
+			name:    "columns alias",
+			builder: NewSelector[TestModel](memoryDB(t)).Where(C("Id").As("my_id").Eq(18)),
+			wantQuery: &Query{
+				SQL:  "SELECT * FROM `test_model` WHERE (`id`= ?);",
+				Args: []any{18},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -138,7 +162,7 @@ type TestModel struct {
 	LastName  *sql.NullString
 }
 
-func MemoryDB(T *testing.T) *DB {
+func memoryDB(T *testing.T) *DB {
 	db, err := Open("sqlite", "file:test.db?cache=shared&mode=memory")
 	require.NoError(T, err)
 	return db
@@ -220,6 +244,117 @@ func TestSelector_Get(t *testing.T) {
 				return
 			}
 			assert.Equalf(t, tt.want, got, "Get(%v)", context.Background())
+		})
+	}
+}
+
+func TestSelector_Select(t *testing.T) {
+	db := memoryDB(t)
+	type args struct {
+		cols []string
+	}
+	type testCase struct {
+		name    string
+		s       QueryBuilder
+		args    args
+		want    *Query
+		wantErr error
+	}
+	tests := []testCase{
+		//{
+		//	name: "multiple columns",
+		//	s:    NewSelector[TestModel](db).Select("first_name", "last_name"),
+		//	want: &Query{
+		//		SQL: "SELECT `first_name`, `last_name` FROM `test_model`;",
+		//	},
+		//},
+		{
+			name: "multiple columns",
+			s:    NewSelector[TestModel](db).Select(C("FirstName"), C("LastName")),
+			want: &Query{
+				SQL: "SELECT `first_name`, `last_name` FROM `test_model`;",
+			},
+		},
+		{
+			name:    "invalid columns",
+			s:       NewSelector[TestModel](db).Select(C("Invalid")),
+			wantErr: errs.NewErrUnknownField("Invalid"),
+		},
+		{
+			name: "avg",
+			s:    NewSelector[TestModel](db).Select(Avg("Age")),
+			want: &Query{
+				SQL: "SELECT AVG(`age`) FROM `test_model`;",
+			},
+		},
+		{
+			name: "sum",
+			s:    NewSelector[TestModel](db).Select(Sum("Age")),
+			want: &Query{
+				SQL: "SELECT SUM(`age`) FROM `test_model`;",
+			},
+		},
+		{
+			name: "count",
+			s:    NewSelector[TestModel](db).Select(Count("Age")),
+			want: &Query{
+				SQL: "SELECT COUNT(`age`) FROM `test_model`;",
+			},
+		},
+		{
+			name: "max",
+			s:    NewSelector[TestModel](db).Select(Max("Age")),
+			want: &Query{
+				SQL: "SELECT MAX(`age`) FROM `test_model`;",
+			},
+		},
+		{
+			name: "min",
+			s:    NewSelector[TestModel](db).Select(Min("Age")),
+			want: &Query{
+				SQL: "SELECT MIN(`age`) FROM `test_model`;",
+			},
+		},
+		{
+			name:    "aggregate invalid columns",
+			s:       NewSelector[TestModel](db).Select(Min("Invalid")),
+			wantErr: errs.NewErrUnknownField("Invalid"),
+		},
+		{
+			name:    "multiple aggregate",
+			s:       NewSelector[TestModel](db).Select(Min("Invalid"), Max("Age")),
+			wantErr: errs.NewErrUnknownField("Invalid"),
+		},
+		{
+			name: "raw expression",
+			s:    NewSelector[TestModel](db).Select(Raw("COUNT(DISTINCT `first_name`)")),
+			want: &Query{
+				SQL: "SELECT COUNT(DISTINCT `first_name`) FROM `test_model`;",
+			},
+		},
+		{
+			name: "columns alias",
+			s:    NewSelector[TestModel](db).Select(C("FirstName").As("my_name"), C("LastName")),
+			want: &Query{
+				SQL: "SELECT `first_name` AS `my_name`, `last_name` FROM `test_model`;",
+			},
+		},
+		{
+			name: "avg",
+			s:    NewSelector[TestModel](db).Select(Avg("Age").As("age")),
+			want: &Query{
+				SQL: "SELECT AVG(`age`) AS `age` FROM `test_model`;",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q, err := tt.s.Build()
+			assert.Equal(t, err, tt.wantErr)
+			if err != nil {
+				return
+			}
+			assert.Equal(t, tt.want, q)
 		})
 	}
 }

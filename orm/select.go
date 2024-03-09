@@ -4,8 +4,14 @@ import (
 	"awesomeProject1/orm/internal/errs"
 	"awesomeProject1/orm/model"
 	"context"
+	"errors"
 	"strings"
 )
+
+// Selectable 标记接口，代表查找的是查找的列或聚合部分，SELECT XXX
+type Selectable interface {
+	selectable()
+}
 
 type Selector[T any] struct {
 	table string
@@ -13,7 +19,11 @@ type Selector[T any] struct {
 	where []Predicate
 	sb    *strings.Builder
 	args  []any
-	db    *DB
+
+	//cols []string
+	cols []Selectable
+
+	db *DB
 	//r *registry
 }
 
@@ -47,7 +57,13 @@ func (s *Selector[T]) Build() (*Query, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.sb.WriteString("SELECT * FROM ")
+	s.sb.WriteString("SELECT")
+
+	if err = s.buildColumns(); err != nil {
+		return nil, err
+	}
+
+	s.sb.WriteString("FROM ")
 	// 反射拿到表名
 	if s.table == "" {
 		//var t T
@@ -97,38 +113,146 @@ func (s *Selector[T]) buildExpression(expr Expression) error {
 			return err
 		}
 		//s.sb.WriteByte(' ')
-		s.sb.WriteString(exp.op.String())
-		s.sb.WriteByte(' ')
+		if exp.op.String() != "" {
+			s.sb.WriteString(exp.op.String())
+			s.sb.WriteByte(' ')
+		}
 
 		if err := s.buildExpression(exp.right); err != nil {
 			return err
 		}
 		s.sb.WriteByte(')')
 	case Column:
-		s.sb.WriteByte('`')
-		fd, exist := s.model.FieldMap[exp.name]
-		if !exist {
-			return errs.NewErrUnknownField(exp.name)
-		}
-		s.sb.WriteString(fd.ColName)
-		s.sb.WriteByte('`')
-		s.sb.WriteByte(' ')
+		//s.sb.WriteByte('`')
+		//fd, exist := s.model.FieldMap[exp.name]
+		//if !exist {
+		//	return errs.NewErrUnknownField(exp.name)
+		//}
+		//s.sb.WriteString(fd.ColName)
+		//s.sb.WriteByte('`')
+		//s.sb.WriteByte(' ')
+		exp.alias = ""
+		return s.buildColumn(exp)
 	case Op:
 	case value:
 		s.addArg(exp.val)
-		//s.args = append(s.args, expr.(value).val)
+		//s.args = append(s.args, raw.(value).val)
 		s.sb.WriteByte('?')
+	case RawExpr:
+		s.sb.WriteByte('(')
+		s.sb.WriteString(exp.raw)
+		s.addArg(exp.args...)
+		s.sb.WriteByte(')')
 	default:
 		return errs.NewErrUnsupportedExpression(expr)
 	}
 	return nil
 }
 
-func (s *Selector[T]) addArg(val any) *Selector[T] {
+func (s *Selector[T]) buildColumns() (err error) {
+	if len(s.cols) > 0 {
+		//s.sb.WriteByte(' ')
+		//for i, col := range s.cols {
+		//	s.sb.WriteByte('`')
+		//	s.sb.WriteString(col)
+		//	s.sb.WriteByte('`')
+		//	if i < len(s.cols)-1 {
+		//		s.sb.WriteByte(',')
+		//	}
+		//	s.sb.WriteByte(' ')
+		//}
+		for i, col := range s.cols {
+			s.sb.WriteByte(' ')
+			switch exp := col.(type) {
+			case Column:
+				err = s.buildColumn(exp)
+				if err != nil {
+					return err
+				}
+			case Aggregate:
+				s.sb.WriteString(exp.fn)
+				s.sb.WriteByte('(')
+				err = s.buildColumn(
+					Column{
+						name: exp.arg,
+					})
+				if err != nil {
+					return err
+				}
+				s.sb.WriteByte(')')
+				if exp.alias != "" {
+					s.sb.WriteByte(' ')
+					s.sb.WriteString("AS")
+					s.sb.WriteByte(' ')
+					s.sb.WriteByte('`')
+					s.sb.WriteString(exp.alias)
+					s.sb.WriteByte('`')
+				}
+			case RawExpr:
+				s.sb.WriteString(exp.raw)
+				s.addArg(exp.args...)
+			default:
+				return errors.New("")
+			}
+
+			if i < len(s.cols)-1 {
+				s.sb.WriteByte(',')
+			}
+			//s.sb.WriteByte(' ')
+		}
+		s.sb.WriteByte(' ')
+	} else {
+		s.sb.WriteString(" * ")
+	}
+	return nil
+}
+
+func (s *Selector[T]) buildColumn(column Column) error {
+	s.sb.WriteByte('`')
+	fd, exist := s.model.FieldMap[column.name]
+	if !exist {
+		return errs.NewErrUnknownField(column.name)
+	}
+	s.sb.WriteString(fd.ColName)
+	s.sb.WriteByte('`')
+
+	if column.alias != "" {
+		s.sb.WriteByte(' ')
+		s.sb.WriteString("AS")
+		s.sb.WriteByte(' ')
+		s.sb.WriteByte('`')
+		s.sb.WriteString(column.alias)
+		s.sb.WriteByte('`')
+	}
+
+	//s.sb.WriteByte(' ')
+	return nil
+}
+
+func (s *Selector[T]) addArg(vals ...any) *Selector[T] {
+	if len(vals) == 0 {
+		return nil
+	}
 	if s.args == nil {
 		s.args = make([]any, 0, 4) // 给定预估容量，避免频繁扩容
 	}
-	s.args = append(s.args, val)
+	s.args = append(s.args, vals...)
+	return s
+}
+
+// select最简实现
+//func (s *Selector[T]) Select(cols ...string) *Selector[T] {
+//	s.cols = cols
+//	return s
+//}
+//
+//func (s *Selector[T]) Select(col string) *Selector[T] {
+//	s.col = col
+//	return s
+//}
+
+func (s *Selector[T]) Select(cols ...Selectable) *Selector[T] {
+	s.cols = cols
 	return s
 }
 

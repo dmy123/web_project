@@ -37,40 +37,6 @@ type Predicate struct {
 //	}
 //}
 
-type Column struct {
-	name string
-}
-
-func C(name string) Column {
-	return Column{name: name}
-}
-
-// C("id").Eq(12)
-func (c Column) Eq(arg any) Predicate {
-	return Predicate{
-		left: c,
-		op:   opEq,
-		right: value{
-			val: arg,
-		},
-	}
-}
-
-func (c Column) Lt(arg any) Predicate {
-	return Predicate{
-		left: c,
-		op:   opLt,
-		right: value{
-			val: arg,
-		},
-	}
-}
-
-func (c Column) expr() {
-	//TODO implement me
-	panic("implement me")
-}
-
 func Not(p Predicate) Predicate {
 	return Predicate{
 		op:    opNot,
@@ -99,11 +65,6 @@ func (left Predicate) Or(right Predicate) Predicate {
 func (left Predicate) expr() {
 	//TODO implement me
 	panic("implement me")
-}
-
-// Expression 标记接口，代表表达式
-type Expression interface {
-	expr()
 }
 
 type value struct {

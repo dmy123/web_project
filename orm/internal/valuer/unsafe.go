@@ -11,12 +11,15 @@ import (
 type unsafeValue struct {
 	model *model.Model
 	val   any // T的指针
+	// 起始地址
+	address unsafe.Pointer
 }
 
 func NewUnsafeValue(model *model.Model, val any) Value {
 	return &unsafeValue{
-		model: model,
-		val:   val,
+		model:   model,
+		val:     val,
+		address: reflect.ValueOf(val).UnsafePointer(),
 	}
 }
 
@@ -30,14 +33,14 @@ func (u unsafeValue) SetColumns(rows *sql.Rows) error {
 	}
 
 	vals := make([]any, 0, len(cs))
-	address := reflect.ValueOf(u.val).UnsafePointer()
+	//address := reflect.ValueOf(u.val).UnsafePointer()
 	for _, c := range cs {
 		fd, ok := u.model.ColumnMap[c]
 		if !ok {
 			return errs.NewErrUnknownColumn(c)
 		}
 		// 起始地址+偏移量
-		fdAddress := unsafe.Pointer(uintptr(address) + fd.Offset)
+		fdAddress := unsafe.Pointer(uintptr(u.address) + fd.Offset)
 
 		// 反射在特定地址上，创建特定类型实例，原本类型的指针类型；case：fd.Typ=int, val是*int
 		val := reflect.NewAt(fd.Typ, fdAddress)
