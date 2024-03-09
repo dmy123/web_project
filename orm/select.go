@@ -1,8 +1,6 @@
 package orm
 
 import (
-	"awesomeProject1/orm/internal/errs"
-	"awesomeProject1/orm/model"
 	"context"
 	"errors"
 	"strings"
@@ -15,10 +13,11 @@ type Selectable interface {
 
 type Selector[T any] struct {
 	table string
-	model *model.Model
+	//model *model.Model
 	where []Predicate
-	sb    *strings.Builder
-	args  []any
+	//sb    *strings.Builder
+	//args  []any
+	builder
 
 	//cols []string
 	cols []Selectable
@@ -36,7 +35,10 @@ type Selector[T any] struct {
 
 func NewSelector[T any](db *DB) *Selector[T] {
 	return &Selector[T]{
-		sb: &strings.Builder{},
+		builder: builder{
+			sb: &strings.Builder{},
+		},
+		//sb: &strings.Builder{},
 		db: db,
 	}
 }
@@ -82,12 +84,15 @@ func (s *Selector[T]) Build() (*Query, error) {
 	// WHERE
 	if len(s.where) > 0 {
 		s.sb.WriteString(" WHERE ")
-		p := s.where[0]
-		for i := 1; i < len(s.where); i++ {
-			p = p.And(s.where[i])
-		}
-
-		if err := s.buildExpression(p); err != nil {
+		//p := s.where[0]
+		//for i := 1; i < len(s.where); i++ {
+		//	p = p.And(s.where[i])
+		//}
+		//
+		//if err := s.buildExpression(p); err != nil {
+		//	return nil, err
+		//}
+		if err = s.buildPredicates(s.where); err != nil {
 			return nil, err
 		}
 	}
@@ -99,55 +104,55 @@ func (s *Selector[T]) Build() (*Query, error) {
 	}, nil
 }
 
-func (s *Selector[T]) buildExpression(expr Expression) error {
-	switch exp := expr.(type) {
-	case nil:
-		return nil
-	case Predicate:
-		// 在这里构建p
-		// p.left构建好
-		// p.Op
-		// p.right
-		s.sb.WriteByte('(')
-		if err := s.buildExpression(exp.left); err != nil {
-			return err
-		}
-		//s.sb.WriteByte(' ')
-		if exp.op.String() != "" {
-			s.sb.WriteString(exp.op.String())
-			s.sb.WriteByte(' ')
-		}
-
-		if err := s.buildExpression(exp.right); err != nil {
-			return err
-		}
-		s.sb.WriteByte(')')
-	case Column:
-		//s.sb.WriteByte('`')
-		//fd, exist := s.model.FieldMap[exp.name]
-		//if !exist {
-		//	return errs.NewErrUnknownField(exp.name)
-		//}
-		//s.sb.WriteString(fd.ColName)
-		//s.sb.WriteByte('`')
-		//s.sb.WriteByte(' ')
-		exp.alias = ""
-		return s.buildColumn(exp)
-	case Op:
-	case value:
-		s.addArg(exp.val)
-		//s.args = append(s.args, raw.(value).val)
-		s.sb.WriteByte('?')
-	case RawExpr:
-		s.sb.WriteByte('(')
-		s.sb.WriteString(exp.raw)
-		s.addArg(exp.args...)
-		s.sb.WriteByte(')')
-	default:
-		return errs.NewErrUnsupportedExpression(expr)
-	}
-	return nil
-}
+//func (s *Selector[T]) buildExpression(expr Expression) error {
+//	switch exp := expr.(type) {
+//	case nil:
+//		return nil
+//	case Predicate:
+//		// 在这里构建p
+//		// p.left构建好
+//		// p.Op
+//		// p.right
+//		s.sb.WriteByte('(')
+//		if err := s.buildExpression(exp.left); err != nil {
+//			return err
+//		}
+//		//s.sb.WriteByte(' ')
+//		if exp.op.String() != "" {
+//			s.sb.WriteString(exp.op.String())
+//			s.sb.WriteByte(' ')
+//		}
+//
+//		if err := s.buildExpression(exp.right); err != nil {
+//			return err
+//		}
+//		s.sb.WriteByte(')')
+//	case Column:
+//		//s.sb.WriteByte('`')
+//		//fd, exist := s.model.FieldMap[exp.name]
+//		//if !exist {
+//		//	return errs.NewErrUnknownField(exp.name)
+//		//}
+//		//s.sb.WriteString(fd.ColName)
+//		//s.sb.WriteByte('`')
+//		//s.sb.WriteByte(' ')
+//		exp.alias = ""
+//		return s.buildColumn(exp)
+//	case Op:
+//	case value:
+//		s.addArg(exp.val)
+//		//s.args = append(s.args, raw.(value).val)
+//		s.sb.WriteByte('?')
+//	case RawExpr:
+//		s.sb.WriteByte('(')
+//		s.sb.WriteString(exp.raw)
+//		s.addArg(exp.args...)
+//		s.sb.WriteByte(')')
+//	default:
+//		return errs.NewErrUnsupportedExpression(expr)
+//	}
+//	return nil
+//}
 
 func (s *Selector[T]) buildColumns() (err error) {
 	if len(s.cols) > 0 {
@@ -207,38 +212,38 @@ func (s *Selector[T]) buildColumns() (err error) {
 	return nil
 }
 
-func (s *Selector[T]) buildColumn(column Column) error {
-	s.sb.WriteByte('`')
-	fd, exist := s.model.FieldMap[column.name]
-	if !exist {
-		return errs.NewErrUnknownField(column.name)
-	}
-	s.sb.WriteString(fd.ColName)
-	s.sb.WriteByte('`')
-
-	if column.alias != "" {
-		s.sb.WriteByte(' ')
-		s.sb.WriteString("AS")
-		s.sb.WriteByte(' ')
-		s.sb.WriteByte('`')
-		s.sb.WriteString(column.alias)
-		s.sb.WriteByte('`')
-	}
-
-	//s.sb.WriteByte(' ')
-	return nil
-}
-
-func (s *Selector[T]) addArg(vals ...any) *Selector[T] {
-	if len(vals) == 0 {
-		return nil
-	}
-	if s.args == nil {
-		s.args = make([]any, 0, 4) // 给定预估容量，避免频繁扩容
-	}
-	s.args = append(s.args, vals...)
-	return s
-}
+//func (s *Selector[T]) buildColumn(column Column) error {
+//	s.sb.WriteByte('`')
+//	fd, exist := s.model.FieldMap[column.name]
+//	if !exist {
+//		return errs.NewErrUnknownField(column.name)
+//	}
+//	s.sb.WriteString(fd.ColName)
+//	s.sb.WriteByte('`')
+//
+//	if column.alias != "" {
+//		s.sb.WriteByte(' ')
+//		s.sb.WriteString("AS")
+//		s.sb.WriteByte(' ')
+//		s.sb.WriteByte('`')
+//		s.sb.WriteString(column.alias)
+//		s.sb.WriteByte('`')
+//	}
+//
+//	//s.sb.WriteByte(' ')
+//	return nil
+//}
+//
+//func (s *Selector[T]) addArg(vals ...any) *Selector[T] {
+//	if len(vals) == 0 {
+//		return nil
+//	}
+//	if s.args == nil {
+//		s.args = make([]any, 0, 4) // 给定预估容量，避免频繁扩容
+//	}
+//	s.args = append(s.args, vals...)
+//	return s
+//}
 
 // select最简实现
 //func (s *Selector[T]) Select(cols ...string) *Selector[T] {
