@@ -3,7 +3,7 @@ package orm
 import (
 	"awesomeProject1/orm/internal/errs"
 	"awesomeProject1/orm/model"
-	"reflect"
+	"context"
 	"strings"
 )
 
@@ -133,14 +133,20 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 			i.sb.WriteByte(',')
 		}
 		i.sb.WriteByte('(')
+		v := i.db.creator(i.model, val)
 		for j := 0; j < cnt; j++ {
 			if j > 0 {
 				i.sb.WriteByte(',')
 			}
 			i.sb.WriteByte('?')
-			v := reflect.ValueOf(val).Elem().FieldByName(fields[j].GoName).Interface()
+			arg, err := v.Field(fields[j].GoName)
+			if err != nil {
+				return nil, err
+			}
+			//v := reflect.ValueOf(val).Elem().FieldByName(fields[j].GoName).Interface()
 			//i.args = append(i.args, v)
-			i.addArg(v)
+			//i.addArg(v)
+			i.addArg(arg)
 		}
 		i.sb.WriteByte(')')
 	}
@@ -196,4 +202,18 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 		SQL:  i.sb.String(),
 		Args: i.args,
 	}, nil
+}
+
+func (i *Inserter[T]) Exec(ctx context.Context) Result {
+	q, err := i.Build()
+	if err != nil {
+		return Result{
+			err: err,
+		}
+	}
+	r, err := i.db.db.Exec(q.SQL, q.Args...)
+	return Result{
+		res: r,
+		err: err,
+	}
 }

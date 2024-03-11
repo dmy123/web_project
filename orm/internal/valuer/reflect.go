@@ -10,17 +10,26 @@ import (
 
 type reflectValue struct {
 	model *model.Model
-	val   any // T的指针
+	//val   any
+	val reflect.Value // T的指针
 }
 
 func NewReflectValue(model *model.Model, val any) Value {
 	return &reflectValue{
 		model: model,
-		val:   val,
+		val:   reflect.ValueOf(val).Elem(),
 	}
 }
 
 var _ Creator = NewReflectValue
+
+func (r reflectValue) Field(name string) (any, error) {
+	_, ok := r.val.Type().FieldByName(name)
+	if !ok {
+		return nil, errs.NewErrUnknownField(name)
+	}
+	return r.val.FieldByName(name).Interface(), nil
+}
 
 func (r reflectValue) SetColumns(rows *sql.Rows) (err error) {
 	cs, err := rows.Columns()

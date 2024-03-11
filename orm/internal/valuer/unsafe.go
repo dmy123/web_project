@@ -25,6 +25,18 @@ func NewUnsafeValue(model *model.Model, val any) Value {
 
 var _ Creator = NewUnsafeValue
 
+func (u unsafeValue) Field(name string) (any, error) {
+	fd, ok := u.model.FieldMap[name]
+	if !ok {
+		return nil, errs.NewErrUnknownField(name)
+	}
+	fdAddress := unsafe.Pointer(uintptr(u.address) + fd.Offset)
+
+	// 反射在特定地址上，创建特定类型实例，原本类型的指针类型；case：fd.Typ=int, val是*int
+	val := reflect.NewAt(fd.Typ, fdAddress)
+	return val.Elem().Interface(), nil
+}
+
 func (u unsafeValue) SetColumns(rows *sql.Rows) error {
 	// select出来哪些列
 	cs, err := rows.Columns()
