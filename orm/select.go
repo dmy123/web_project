@@ -35,9 +35,7 @@ type Selector[T any] struct {
 
 func NewSelector[T any](db *DB) *Selector[T] {
 	return &Selector[T]{
-		builder: builder{
-			sb: &strings.Builder{},
-		},
+		builder: builder{sb: &strings.Builder{}, dialect: db.dialect, quoter: db.dialect.quoter()},
 		//sb: &strings.Builder{},
 		db: db,
 	}

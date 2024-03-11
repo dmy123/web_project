@@ -163,7 +163,7 @@ type TestModel struct {
 }
 
 func memoryDB(T *testing.T) *DB {
-	db, err := Open("sqlite", "file:test.db?cache=shared&mode=memory")
+	db, err := Open("sqlite", "file:test.db?cache=shared&mode=memory", DBWithDialect(DialectMySQL))
 	require.NoError(T, err)
 	return db
 }

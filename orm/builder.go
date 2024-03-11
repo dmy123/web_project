@@ -11,6 +11,9 @@ type builder struct {
 	args []any
 
 	model *model.Model
+
+	dialect Dialect
+	quoter  byte
 }
 
 func (b *builder) buildPredicates(ps []Predicate) error {
@@ -92,4 +95,10 @@ func (s *builder) addArg(vals ...any) *builder {
 	}
 	s.args = append(s.args, vals...)
 	return s
+}
+
+func (b *builder) Quoter(name string) {
+	b.sb.WriteByte(b.quoter)
+	b.sb.WriteString(name)
+	b.sb.WriteByte(b.quoter)
 }

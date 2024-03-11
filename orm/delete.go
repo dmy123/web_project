@@ -16,7 +16,8 @@ type Deleter[T any] struct {
 }
 
 func NewDeleter[T any](db *DB) *Deleter[T] {
-	return &Deleter[T]{builder: builder{sb: &strings.Builder{}}, db: db}
+	return &Deleter[T]{builder: builder{sb: &strings.Builder{}, dialect: db.dialect, quoter: db.dialect.quoter()},
+		db: db}
 }
 
 func (d Deleter[T]) Build() (query *Query, err error) {

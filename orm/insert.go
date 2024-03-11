@@ -11,12 +11,12 @@ type OnDuplicateKeyBuilder[T any] struct {
 	i *Inserter[T]
 }
 
-type OnDuplicateKey[T any] struct {
+type OnDuplicateKey struct {
 	assigns []Assignable
 }
 
 func (o *OnDuplicateKeyBuilder[T]) Update(assigns ...Assignable) *Inserter[T] {
-	o.i.onDuplicateKey = &OnDuplicateKey[T]{
+	o.i.onDuplicateKey = &OnDuplicateKey{
 		assigns: assigns,
 	}
 	return o.i
@@ -33,20 +33,21 @@ type Assignable interface {
 }
 
 type Inserter[T any] struct {
-	db      *DB
-	vals    []*T
-	sb      *strings.Builder
-	model   *model.Model
-	args    []any
+	db   *DB
+	vals []*T
+	builder
+	//sb      *strings.Builder
+	//model   *model.Model
+	//args    []any
 	columns []string
 	//onDuplicateKey []Assignable
-	onDuplicateKey *OnDuplicateKey[T]
+	onDuplicateKey *OnDuplicateKey
 }
 
 func NewInserter[T any](db *DB) *Inserter[T] {
 	return &Inserter[T]{
-		db: db,
-		sb: &strings.Builder{},
+		db:      db,
+		builder: builder{sb: &strings.Builder{}, dialect: db.dialect, quoter: db.dialect.quoter()},
 	}
 }
 
@@ -109,9 +110,10 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 		if cnt > 0 {
 			i.sb.WriteString(", ")
 		}
-		i.sb.WriteByte('`')
-		i.sb.WriteString(fd.ColName)
-		i.sb.WriteByte('`')
+		i.Quoter(fd.ColName)
+		//i.sb.WriteByte('`')
+		//i.sb.WriteString(fd.ColName)
+		//i.sb.WriteByte('`')
 		cnt++
 	}
 
@@ -129,50 +131,55 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 			}
 			i.sb.WriteByte('?')
 			v := reflect.ValueOf(val).Elem().FieldByName(fields[j].GoName).Interface()
-			i.args = append(i.args, v)
+			//i.args = append(i.args, v)
+			i.addArg(v)
 		}
 		i.sb.WriteByte(')')
 	}
 
 	if i.onDuplicateKey != nil {
-		i.sb.WriteString(" ON DUPLICATE KEY UPDATE ")
-		for j, assign := range i.onDuplicateKey.assigns {
-			switch exp := assign.(type) {
-			case Assignment:
-				fd, ok := i.model.FieldMap[exp.col]
-				if !ok {
-					return nil, errs.NewErrUnknownField(exp.col)
-				}
-				if j > 0 {
-					i.sb.WriteString(", ")
-				}
-				i.sb.WriteByte('`')
-				i.sb.WriteString(fd.ColName)
-				i.sb.WriteByte('`')
-				i.sb.WriteString("=?")
-				i.args = append(i.args, exp.val...)
-			case Column:
-				fd, ok := i.model.FieldMap[exp.name]
-				if !ok {
-					return nil, errs.NewErrUnknownField(exp.name)
-				}
-				if j > 0 {
-					i.sb.WriteString(", ")
-				}
-				i.sb.WriteByte('`')
-				i.sb.WriteString(fd.ColName)
-				i.sb.WriteByte('`')
-				i.sb.WriteString("=")
-				i.sb.WriteString("VALUES")
-				i.sb.WriteByte('(')
-				i.sb.WriteByte('`')
-				i.sb.WriteString(fd.ColName)
-				i.sb.WriteByte('`')
-				i.sb.WriteByte(')')
-			default:
-				return nil, errs.NewErrUnsupportedAssignable(exp)
-			}
+		err = i.dialect.buildOnDuplicateKey(&i.builder, i.onDuplicateKey)
+		if err != nil {
+			return nil, err
 		}
+		//i.sb.WriteString(" ON DUPLICATE KEY UPDATE ")
+		//for j, assign := range i.onDuplicateKey.assigns {
+		//	switch exp := assign.(type) {
+		//	case Assignment:
+		//		fd, ok := i.model.FieldMap[exp.col]
+		//		if !ok {
+		//			return nil, errs.NewErrUnknownField(exp.col)
+		//		}
+		//		if j > 0 {
+		//			i.sb.WriteString(", ")
+		//		}
+		//		i.sb.WriteByte('`')
+		//		i.sb.WriteString(fd.ColName)
+		//		i.sb.WriteByte('`')
+		//		i.sb.WriteString("=?")
+		//		i.args = append(i.args, exp.val...)
+		//	case Column:
+		//		fd, ok := i.model.FieldMap[exp.name]
+		//		if !ok {
+		//			return nil, errs.NewErrUnknownField(exp.name)
+		//		}
+		//		if j > 0 {
+		//			i.sb.WriteString(", ")
+		//		}
+		//		i.sb.WriteByte('`')
+		//		i.sb.WriteString(fd.ColName)
+		//		i.sb.WriteByte('`')
+		//		i.sb.WriteString("=")
+		//		i.sb.WriteString("VALUES")
+		//		i.sb.WriteByte('(')
+		//		i.sb.WriteByte('`')
+		//		i.sb.WriteString(fd.ColName)
+		//		i.sb.WriteByte('`')
+		//		i.sb.WriteByte(')')
+		//	default:
+		//		return nil, errs.NewErrUnsupportedAssignable(exp)
+		//	}
+		//}
 	}
 
 	i.sb.WriteByte(';')
