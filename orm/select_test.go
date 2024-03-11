@@ -168,6 +168,12 @@ func memoryDB(T *testing.T) *DB {
 	return db
 }
 
+func memoryDBOpt(T *testing.T, opts ...DBOption) *DB {
+	db, err := Open("sqlite", "file:test.db?cache=shared&mode=memory", opts...)
+	require.NoError(T, err)
+	return db
+}
+
 func TestSelector_Get(t *testing.T) {
 	mockDB, mock, err := sqlmock.New()
 	require.NoError(t, err)

@@ -7,6 +7,63 @@ import (
 	"testing"
 )
 
+func TestInserter_SQLite_upsert(t *testing.T) {
+	db := memoryDBOpt(t, DBWithDialect(DialectSQLite))
+	type testCase[T any] struct {
+		name    string
+		i       *Inserter[TestModel]
+		want    *Query
+		wantErr error
+	}
+	tests := []testCase[TestModel]{
+		//{
+		//	name: "",
+		//	i: NewInserter[TestModel](db).Values().Upsert().ConflictColumns().Update(),
+		//	want: ,
+		//},
+		{
+			name: "upsert",
+			i: NewInserter[TestModel](db).Values(&TestModel{
+				Id:        12,
+				FirstName: "Tom",
+				Age:       8,
+				LastName: &sql.NullString{
+					String: "Jerry",
+					Valid:  true,
+				},
+			}).OnDuplicateKey().ConflictColumns("Id").Update(Assign("FirstName", "Deng"), Assign("Age", 19)),
+			want: &Query{SQL: "INSERT INTO `test_model` (`id`, `first_name`, `age`, `last_name`) VALUES (?,?,?,?) ON CONFLICT(`id`) DO UPDATE SET `first_name`=?, `age`=?;",
+				Args: []any{int64(12), "Tom", int8(8),
+					&sql.NullString{String: "Jerry", Valid: true}, "Deng", 19}},
+		},
+		{
+			name: "upsert column",
+			i: NewInserter[TestModel](db).Values(&TestModel{
+				Id:        12,
+				FirstName: "Tom",
+				Age:       8,
+				LastName: &sql.NullString{
+					String: "Jerry",
+					Valid:  true,
+				},
+			}).OnDuplicateKey().ConflictColumns("FirstName", "LastName").Update(C("FirstName"), C("Age")),
+			want: &Query{SQL: "INSERT INTO `test_model` (`id`, `first_name`, `age`, `last_name`) VALUES (?,?,?,?) ON CONFLICT(`first_name`, `last_name`) DO UPDATE SET `first_name`=excluded.`first_name`, `age`=excluded.`age`;",
+				Args: []any{int64(12), "Tom", int8(8),
+					&sql.NullString{String: "Jerry", Valid: true}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.i.Build()
+			assert.Equal(t, err, tt.wantErr)
+			if err != nil {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "Build()")
+		})
+	}
+}
+
 func TestInserter_Build(t *testing.T) {
 	db := memoryDB(t)
 	type testCase[T any] struct {
