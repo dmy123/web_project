@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	ErrPointerOnly = errors.New("orm：只支持指向结构体一级指针")
-	ErrNoRows      = errors.New("orm: 没有数据")
+	ErrPointerOnly    = errors.New("orm：只支持指向结构体一级指针")
+	ErrNoRows         = errors.New("orm: 没有数据")
+	ErrInsertZeroRows = errors.New("orm: 插入0行")
 )
 
 func NewErrUnsupportedExpression(expr any) error {
@@ -24,4 +25,8 @@ func NewErrUnknownColumn(name string) error {
 
 func NewErrInvalidTagContent(pair string) error {
 	return fmt.Errorf("orm：非法标签值 %s", pair)
+}
+
+func NewErrUnsupportedAssignable(expr any) error {
+	return fmt.Errorf("orm：不支持的表达式类型 %v", expr)
 }

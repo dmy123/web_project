@@ -9,6 +9,10 @@ func C(name string) Column {
 	return Column{name: name}
 }
 
+func (c Column) assign() {
+	return
+}
+
 func (c Column) As(alias string) Column {
 	return Column{
 		name:  c.name,

@@ -23,6 +23,7 @@ type TableName interface {
 
 type Model struct {
 	TableName string
+	Fields    []*Field
 	// 字段名到字段的映射
 	FieldMap map[string]*Field
 	// 列名到字段的映射
@@ -136,6 +137,7 @@ func (r *Registry) Registry(entity any, opts ...Option) (*Model, error) {
 	numField := elemTyp.NumField()
 	fieldMap := make(map[string]*Field, numField)
 	columnMap := make(map[string]*Field, numField)
+	fields := make([]*Field, 0, numField)
 	for i := 0; i < numField; i++ {
 		fd := elemTyp.Field(i)
 		pair, err := r.parseTag(fd.Tag)
@@ -155,6 +157,7 @@ func (r *Registry) Registry(entity any, opts ...Option) (*Model, error) {
 		}
 		fieldMap[fd.Name] = field
 		columnMap[colName] = field
+		fields = append(fields, field)
 	}
 
 	var tableName string
@@ -168,6 +171,7 @@ func (r *Registry) Registry(entity any, opts ...Option) (*Model, error) {
 
 	res := &Model{
 		TableName: tableName,
+		Fields:    fields,
 		FieldMap:  fieldMap,
 		ColumnMap: columnMap,
 	}
