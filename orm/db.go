@@ -132,6 +132,12 @@ func (db *DB) execContext(ctx context.Context, query string, args ...any) (sql.R
 	return db.db.ExecContext(ctx, query, args...)
 }
 
+func DBWithMiddleware(mdls ...Middleware) DBOption {
+	return func(db *DB) {
+		db.mdls = append(db.mdls, mdls...)
+	}
+}
+
 func DBWithRegistry(r model.Registry) DBOption {
 	return func(db *DB) {
 		db.r = &r

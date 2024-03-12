@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"context"
 	"strings"
 )
 
@@ -18,12 +19,12 @@ type Deleter[T any] struct {
 
 func NewDeleter[T any](sess Session) *Deleter[T] {
 	core := sess.getCore()
-	return &Deleter[T]{builder: builder{sb: &strings.Builder{}, core: core, quoter: core.dialect.quoter()}} //dialect: db.dialect, quoter: db.dialect.quoter(),
+	return &Deleter[T]{builder: builder{sb: &strings.Builder{}, core: core, quoter: core.dialect.quoter()}, sess: sess} //dialect: db.dialect, quoter: db.dialect.quoter(),
 
 	//db: db}
 }
 
-func (d Deleter[T]) Build() (query *Query, err error) {
+func (d *Deleter[T]) Build() (query *Query, err error) {
 	d.model, err = d.r.Registry(new(T))
 	// 构造语句
 	d.sb.WriteString("DELETE FROM ")
@@ -49,6 +50,37 @@ func (d Deleter[T]) Build() (query *Query, err error) {
 		SQL:  d.sb.String(),
 		Args: d.args,
 	}, nil
+}
+
+func (d *Deleter[T]) execHandler(ctx context.Context, qc *QueryContext) *QueryResult {
+	res, err := d.Build()
+	if err != nil {
+		return &QueryResult{
+			Result: Result{
+				err: err,
+			},
+			Err: err,
+		}
+	}
+	r, err := d.sess.execContext(ctx, res.SQL, res.Args...)
+	return &QueryResult{
+		Result: Result{
+			err: err,
+			res: r,
+		},
+		Err: err,
+	}
+}
+
+func (d *Deleter[T]) Exec(ctx context.Context) {
+	root := d.execHandler
+	for i := len(d.mdls) - 1; i >= 0; i-- {
+		root = d.mdls[i](root)
+	}
+	root(ctx, &QueryContext{
+		Type:    "",
+		Builder: d,
+	})
 }
 
 func (d *Deleter[T]) From(table string) *Deleter[T] {

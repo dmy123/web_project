@@ -1,7 +1,7 @@
 package web
 
 // Middleware 函数式的责任链模式/函数式的洋葱模式
-type Middleware func(handler HandleFunc) HandleFunc
+type Middleware func(next HandleFunc) HandleFunc
 
 //type MiddlewareV1 interface {
 //	Invoke(next HandleFunc) HandleFunc

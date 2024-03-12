@@ -365,10 +365,33 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //}
 
 // 基于unsafe
-func (s Selector[T]) Get(ctx context.Context) (*T, error) {
+func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
+	root := s.getHandler
+	for i := len(s.mdls) - 1; i >= 0; i-- {
+		root = s.mdls[i](root)
+	}
+	res := root(ctx, &QueryContext{
+		Type:    "SELECT",
+		Builder: s,
+	})
+	//var t *T
+	//if val, ok := res.Result.(*T);ok {
+	//	t = val
+	//}
+	//return t, res.Err
+	if res.Result != nil {
+		return res.Result.(*T), res.Err
+	}
+	return nil, res.Err
+}
+
+var _ Handler = (&Selector[any]{}).getHandler
+
+func (s *Selector[T]) getHandler(ctx context.Context, qc *QueryContext) *QueryResult {
 	q, err := s.Build()
 	if err != nil {
-		return nil, err
+		//return nil, err
+		return &QueryResult{Err: err}
 	}
 
 	//var db *sql.DB
@@ -376,18 +399,23 @@ func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 	// 发起查询，处理结果集
 	row, err := sess.queryContext(ctx, q.SQL, q.Args...)
 	if err != nil {
-		return nil, err
+		return &QueryResult{Err: err}
 	}
 
 	if !row.Next() {
 		// 里面是否返回error，返回error和sql包一致吗？和GetMulti保持一致
-		return nil, ErrNoRows
+		return &QueryResult{Err: ErrNoRows}
+		//return nil, ErrNoRows
 	}
 
 	tp := new(T)
 	//var creator valuer.Creator
 	err = s.creator(s.model, tp).SetColumns(row)
-	return tp, err
+	//return tp, err
+	return &QueryResult{
+		Result: tp,
+		Err:    err,
+	}
 
 	////s.model.FieldMap
 	//
@@ -419,8 +447,7 @@ func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 	//	return nil, err
 	//}
 
-	return tp, nil
-
+	//return tp, nil
 }
 
 func (s Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {

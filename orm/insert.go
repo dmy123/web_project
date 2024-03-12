@@ -4,6 +4,7 @@ import (
 	"awesomeProject1/orm/internal/errs"
 	"awesomeProject1/orm/model"
 	"context"
+	"database/sql"
 	"strings"
 )
 
@@ -206,16 +207,53 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 	}, nil
 }
 
-func (i *Inserter[T]) Exec(ctx context.Context) Result {
+var _ Handler = (&Inserter[any]{}).execHandler
+
+func (i *Inserter[T]) execHandler(ctx context.Context, qc *QueryContext) *QueryResult {
 	q, err := i.Build()
 	if err != nil {
-		return Result{
-			err: err,
+		return &QueryResult{
+			Result: Result{
+				err: err,
+			},
+			Err: err,
 		}
 	}
 	r, err := i.sess.execContext(ctx, q.SQL, q.Args...)
+	return &QueryResult{
+		Result: Result{
+			err: err,
+			res: r,
+		},
+		Err: err,
+	}
+}
+
+func (i *Inserter[T]) Exec(ctx context.Context) Result {
+	//q, err := i.Build()
+	//if err != nil {
+	//	return Result{
+	//		err: err,
+	//	}
+	//}
+	//r, err := i.sess.execContext(ctx, q.SQL, q.Args...)
+	//return Result{
+	//	res: r,
+	//	err: err,
+	//}
+	root := i.execHandler
+	for j := len(i.mdls) - 1; j >= 0; j-- {
+		root = i.mdls[j](root)
+	}
+	res := root(ctx, &QueryContext{
+		Type:    "INSERT",
+		Builder: i,
+	})
+	var sqlRes sql.Result
+	if res.Result != nil {
+		sqlRes = res.Result.(sql.Result)
+	}
 	return Result{
-		res: r,
-		err: err,
+		res: sqlRes, err: res.Err,
 	}
 }
