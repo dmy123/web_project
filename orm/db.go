@@ -69,6 +69,34 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	}, nil
 }
 
+type txKey struct {
+}
+
+//// BeginTxV2 事务已被提交情况
+//func (db *DB) BeginTxV2(ctx context.Context, opts *sql.TxOptions) (context.Context, *Tx, error) {
+//	val := ctx.Value(txKey{})
+//	tx, ok := val.(*Tx)
+//	if ok {
+//		return ctx, tx, nil
+//	}
+//	tx, err := db.BeginTx(ctx, opts)
+//	if err != nil {
+//		return ctx, nil, err
+//	}
+//	ctx = context.WithValue(ctx, txKey{}, tx)
+//	return ctx, tx, nil
+//}
+//
+//// BeginTxV3 必须上层链路开事务
+//func (db *DB) BeginTxV3(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
+//	val := ctx.Value(txKey{})
+//	tx, ok := val.(*Tx)
+//	if ok {
+//		return tx, nil
+//	}
+//	return nil, errors.New("未开事务")
+//}
+
 func (db *DB) getCore() core {
 	return db.core
 }
