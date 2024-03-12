@@ -22,8 +22,10 @@ type Selector[T any] struct {
 	//cols []string
 	cols []Selectable
 
-	db *DB
+	//db *DB
 	//r *registry
+
+	sess Session
 }
 
 //func (db *DB) NewSelector[T any]() *Selector[T] {
@@ -33,11 +35,15 @@ type Selector[T any] struct {
 //	}
 //}
 
-func NewSelector[T any](db *DB) *Selector[T] {
+func NewSelector[T any](sess Session) *Selector[T] {
+	core := sess.getCore()
 	return &Selector[T]{
-		builder: builder{sb: &strings.Builder{}, dialect: db.dialect, quoter: db.dialect.quoter()},
+		builder: builder{sb: &strings.Builder{}, core: core, quoter: core.dialect.quoter()},
+		// dialect: sess.dialect, quoter: db.dialect.quoter(),
+
 		//sb: &strings.Builder{},
-		db: db,
+		//db: db,
+		sess: sess,
 	}
 }
 
@@ -53,7 +59,7 @@ func (s *Selector[T]) Build() (*Query, error) {
 	//}
 	var err error
 	//r := &registry{}
-	s.model, err = s.db.r.Registry(new(T))
+	s.model, err = s.r.Registry(new(T))
 	if err != nil {
 		return nil, err
 	}
@@ -366,9 +372,9 @@ func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 	}
 
 	//var db *sql.DB
-	db := s.db.db
+	sess := s.sess
 	// 发起查询，处理结果集
-	row, err := db.QueryContext(ctx, q.SQL, q.Args...)
+	row, err := sess.queryContext(ctx, q.SQL, q.Args...)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +386,7 @@ func (s Selector[T]) Get(ctx context.Context) (*T, error) {
 
 	tp := new(T)
 	//var creator valuer.Creator
-	err = s.db.creator(s.model, tp).SetColumns(row)
+	err = s.creator(s.model, tp).SetColumns(row)
 	return tp, err
 
 	////s.model.FieldMap
@@ -424,9 +430,9 @@ func (s Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {
 	}
 
 	//var db *sql.DB
-	db := s.db.db
+	sess := s.sess
 	// 发起查询，处理结果集
-	rows, err := db.QueryContext(ctx, q.SQL, q.Args)
+	rows, err := sess.queryContext(ctx, q.SQL, q.Args)
 
 	for rows.Next() {
 

@@ -41,7 +41,8 @@ type Assignable interface {
 }
 
 type Inserter[T any] struct {
-	db   *DB
+	//db   *DB
+	sess Session
 	vals []*T
 	builder
 	//sb      *strings.Builder
@@ -52,10 +53,11 @@ type Inserter[T any] struct {
 	onDuplicateKey *Upsert
 }
 
-func NewInserter[T any](db *DB) *Inserter[T] {
+func NewInserter[T any](sess Session) *Inserter[T] {
+	core := sess.getCore()
 	return &Inserter[T]{
-		db:      db,
-		builder: builder{sb: &strings.Builder{}, dialect: db.dialect, quoter: db.dialect.quoter()},
+		builder: builder{sb: &strings.Builder{}, core: core, quoter: core.dialect.quoter()},
+		sess:    sess,
 	}
 }
 
@@ -81,7 +83,7 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 		return nil, errs.ErrInsertZeroRows
 	}
 	i.sb.WriteString("INSERT INTO ")
-	i.model, err = i.db.r.Get(new(T))
+	i.model, err = i.r.Get(new(T))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +135,7 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 			i.sb.WriteByte(',')
 		}
 		i.sb.WriteByte('(')
-		v := i.db.creator(i.model, val)
+		v := i.creator(i.model, val)
 		for j := 0; j < cnt; j++ {
 			if j > 0 {
 				i.sb.WriteByte(',')
@@ -211,7 +213,7 @@ func (i *Inserter[T]) Exec(ctx context.Context) Result {
 			err: err,
 		}
 	}
-	r, err := i.db.db.Exec(q.SQL, q.Args...)
+	r, err := i.sess.execContext(ctx, q.SQL, q.Args...)
 	return Result{
 		res: r,
 		err: err,

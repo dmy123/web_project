@@ -2,7 +2,6 @@ package orm
 
 import (
 	"awesomeProject1/orm/internal/errs"
-	"awesomeProject1/orm/model"
 	"strings"
 )
 
@@ -10,10 +9,11 @@ type builder struct {
 	sb   *strings.Builder
 	args []any
 
-	model *model.Model
-
-	dialect Dialect
-	quoter  byte
+	core
+	//model *model.Model
+	//
+	//dialect Dialect
+	quoter byte
 }
 
 func (b *builder) buildPredicates(ps []Predicate) error {

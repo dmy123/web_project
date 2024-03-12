@@ -7,7 +7,8 @@ import (
 type Deleter[T any] struct {
 	//sb    *strings.Builder
 	//model *model.Model
-	db *DB
+	//db *DB
+	sess Session
 
 	wheres []Predicate
 	//args   []any
@@ -15,13 +16,15 @@ type Deleter[T any] struct {
 	builder
 }
 
-func NewDeleter[T any](db *DB) *Deleter[T] {
-	return &Deleter[T]{builder: builder{sb: &strings.Builder{}, dialect: db.dialect, quoter: db.dialect.quoter()},
-		db: db}
+func NewDeleter[T any](sess Session) *Deleter[T] {
+	core := sess.getCore()
+	return &Deleter[T]{builder: builder{sb: &strings.Builder{}, core: core, quoter: core.dialect.quoter()}} //dialect: db.dialect, quoter: db.dialect.quoter(),
+
+	//db: db}
 }
 
 func (d Deleter[T]) Build() (query *Query, err error) {
-	d.model, err = d.db.r.Registry(new(T))
+	d.model, err = d.r.Registry(new(T))
 	// 构造语句
 	d.sb.WriteString("DELETE FROM ")
 
