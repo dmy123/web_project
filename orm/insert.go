@@ -84,9 +84,11 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 		return nil, errs.ErrInsertZeroRows
 	}
 	i.sb.WriteString("INSERT INTO ")
-	i.model, err = i.r.Get(new(T))
-	if err != nil {
-		return nil, err
+	if i.model == nil {
+		i.model, err = i.r.Get(new(T))
+		if err != nil {
+			return nil, err
+		}
 	}
 	i.sb.WriteByte('`')
 	i.sb.WriteString(i.model.TableName)
@@ -230,6 +232,13 @@ func (i *Inserter[T]) execHandler(ctx context.Context, qc *QueryContext) *QueryR
 }
 
 func (i *Inserter[T]) Exec(ctx context.Context) Result {
+	var err error
+	i.model, err = i.r.Get(new(T))
+	if err != nil {
+		return Result{
+			err: err,
+		}
+	}
 	//q, err := i.Build()
 	//if err != nil {
 	//	return Result{
@@ -248,6 +257,7 @@ func (i *Inserter[T]) Exec(ctx context.Context) Result {
 	res := root(ctx, &QueryContext{
 		Type:    "INSERT",
 		Builder: i,
+		Model:   i.model,
 	})
 	var sqlRes sql.Result
 	if res.Result != nil {

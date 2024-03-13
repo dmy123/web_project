@@ -25,7 +25,12 @@ func NewDeleter[T any](sess Session) *Deleter[T] {
 }
 
 func (d *Deleter[T]) Build() (query *Query, err error) {
-	d.model, err = d.r.Registry(new(T))
+	if d.model == nil {
+		d.model, err = d.r.Get(new(T))
+		if err != nil {
+			return nil, err
+		}
+	}
 	// 构造语句
 	d.sb.WriteString("DELETE FROM ")
 
@@ -73,6 +78,11 @@ func (d *Deleter[T]) execHandler(ctx context.Context, qc *QueryContext) *QueryRe
 }
 
 func (d *Deleter[T]) Exec(ctx context.Context) {
+	var err error
+	d.model, err = d.r.Get(new(T))
+	if err != nil {
+		return
+	}
 	root := d.execHandler
 	for i := len(d.mdls) - 1; i >= 0; i-- {
 		root = d.mdls[i](root)
@@ -80,6 +90,7 @@ func (d *Deleter[T]) Exec(ctx context.Context) {
 	root(ctx, &QueryContext{
 		Type:    "",
 		Builder: d,
+		Model:   d.model,
 	})
 }
 

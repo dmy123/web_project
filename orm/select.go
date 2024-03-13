@@ -59,9 +59,11 @@ func (s *Selector[T]) Build() (*Query, error) {
 	//}
 	var err error
 	//r := &registry{}
-	s.model, err = s.r.Registry(new(T))
-	if err != nil {
-		return nil, err
+	if s.model == nil {
+		s.model, err = s.r.Get(new(T))
+		if err != nil {
+			return nil, err
+		}
 	}
 	s.sb.WriteString("SELECT")
 
@@ -365,14 +367,21 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //}
 
 // 基于unsafe
-func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
+func (s *Selector[T]) Get(ctx context.Context) (result *T, err error) {
 	root := s.getHandler
 	for i := len(s.mdls) - 1; i >= 0; i-- {
 		root = s.mdls[i](root)
 	}
+	if s.model == nil {
+		s.model, err = s.r.Get(new(T))
+		if err != nil {
+			return nil, err
+		}
+	}
 	res := root(ctx, &QueryContext{
 		Type:    "SELECT",
 		Builder: s,
+		Model:   s.model,
 	})
 	//var t *T
 	//if val, ok := res.Result.(*T);ok {

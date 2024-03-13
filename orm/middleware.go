@@ -1,10 +1,15 @@
 package orm
 
-import "context"
+import (
+	"awesomeProject1/orm/model"
+	"context"
+)
 
 type QueryContext struct {
 	Type    string // 标记增删改查
 	Builder QueryBuilder
+
+	Model *model.Model
 }
 
 type QueryResult struct {
