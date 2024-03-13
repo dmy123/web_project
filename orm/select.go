@@ -367,44 +367,50 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //}
 
 // 基于unsafe
+//func (s *Selector[T]) Get(ctx context.Context) (result *T, err error) {
+//	if s.model == nil {
+//		s.model, err = s.r.Get(new(T))
+//		if err != nil {
+//			return nil, err
+//		}
+//	}
+//	root := s.getHandler
+//	for i := len(s.mdls) - 1; i >= 0; i-- {
+//		root = s.mdls[i](root)
+//	}
+//	res := root(ctx, &QueryContext{
+//		Type:    "SELECT",
+//		Builder: s,
+//		Model:   s.model,
+//	})
+//	//var t *T
+//	//if val, ok := res.Result.(*T);ok {
+//	//	t = val
+//	//}
+//	//return t, res.Err
+//	if res.Result != nil {
+//		return res.Result.(*T), res.Err
+//	}
+//	return nil, res.Err
+//}
+
 func (s *Selector[T]) Get(ctx context.Context) (result *T, err error) {
-	root := s.getHandler
-	for i := len(s.mdls) - 1; i >= 0; i-- {
-		root = s.mdls[i](root)
-	}
-	if s.model == nil {
-		s.model, err = s.r.Get(new(T))
-		if err != nil {
-			return nil, err
-		}
-	}
-	res := root(ctx, &QueryContext{
-		Type:    "SELECT",
-		Builder: s,
-		Model:   s.model,
-	})
-	//var t *T
-	//if val, ok := res.Result.(*T);ok {
-	//	t = val
-	//}
-	//return t, res.Err
+	res := get[T](ctx, s.sess, s.core, s)
 	if res.Result != nil {
 		return res.Result.(*T), res.Err
 	}
 	return nil, res.Err
 }
 
-var _ Handler = (&Selector[any]{}).getHandler
+// var _ Handler = (&Selector[any]{}).getHandler
 
-func (s *Selector[T]) getHandler(ctx context.Context, qc *QueryContext) *QueryResult {
-	q, err := s.Build()
+func getHandler[T any](ctx context.Context, sess Session, c core, qc *QueryContext) *QueryResult {
+	q, err := qc.Builder.Build()
 	if err != nil {
 		//return nil, err
 		return &QueryResult{Err: err}
 	}
 
-	//var db *sql.DB
-	sess := s.sess
 	// 发起查询，处理结果集
 	row, err := sess.queryContext(ctx, q.SQL, q.Args...)
 	if err != nil {
@@ -414,50 +420,78 @@ func (s *Selector[T]) getHandler(ctx context.Context, qc *QueryContext) *QueryRe
 	if !row.Next() {
 		// 里面是否返回error，返回error和sql包一致吗？和GetMulti保持一致
 		return &QueryResult{Err: ErrNoRows}
-		//return nil, ErrNoRows
 	}
 
 	tp := new(T)
-	//var creator valuer.Creator
-	err = s.creator(s.model, tp).SetColumns(row)
-	//return tp, err
+	err = c.creator(c.model, tp).SetColumns(row)
 	return &QueryResult{
 		Result: tp,
 		Err:    err,
 	}
-
-	////s.model.FieldMap
-	//
-	//// 问题： 类型、顺序要匹配
-	//
-	//// select出来哪些列
-	//cs, err := row.Columns()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//tp := new(T)
-	//vals := make([]any, 0, len(cs))
-	//address := reflect.ValueOf(tp).UnsafePointer()
-	//for _, c := range cs {
-	//	fd, ok := s.model.ColumnMap[c]
-	//	if !ok {
-	//		return nil, errs.NewErrUnknownColumn(c)
-	//	}
-	//	// 起始地址+偏移量
-	//	fdAddress := unsafe.Pointer(uintptr(address) + fd.Offset)
-	//
-	//	// 反射在特定地址上，创建特定类型实例，原本类型的指针类型；case：fd.Typ=int, val是*int
-	//	val := reflect.NewAt(fd.Typ, fdAddress)
-	//	vals = append(vals, val.Interface())
-	//}
-	//err = row.Scan(vals...)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//return tp, nil
 }
+
+//func (s *Selector[T]) getHandler(ctx context.Context, qc *QueryContext) *QueryResult {
+//	q, err := s.Build()
+//	if err != nil {
+//		//return nil, err
+//		return &QueryResult{Err: err}
+//	}
+//
+//	//var db *sql.DB
+//	sess := s.sess
+//	// 发起查询，处理结果集
+//	row, err := sess.queryContext(ctx, q.SQL, q.Args...)
+//	if err != nil {
+//		return &QueryResult{Err: err}
+//	}
+//
+//	if !row.Next() {
+//		// 里面是否返回error，返回error和sql包一致吗？和GetMulti保持一致
+//		return &QueryResult{Err: ErrNoRows}
+//		//return nil, ErrNoRows
+//	}
+//
+//	tp := new(T)
+//	//var creator valuer.Creator
+//	err = s.creator(s.model, tp).SetColumns(row)
+//	//return tp, err
+//	return &QueryResult{
+//		Result: tp,
+//		Err:    err,
+//	}
+//
+//	////s.model.FieldMap
+//	//
+//	//// 问题： 类型、顺序要匹配
+//	//
+//	//// select出来哪些列
+//	//cs, err := row.Columns()
+//	//if err != nil {
+//	//	return nil, err
+//	//}
+//	//
+//	//tp := new(T)
+//	//vals := make([]any, 0, len(cs))
+//	//address := reflect.ValueOf(tp).UnsafePointer()
+//	//for _, c := range cs {
+//	//	fd, ok := s.model.ColumnMap[c]
+//	//	if !ok {
+//	//		return nil, errs.NewErrUnknownColumn(c)
+//	//	}
+//	//	// 起始地址+偏移量
+//	//	fdAddress := unsafe.Pointer(uintptr(address) + fd.Offset)
+//	//
+//	//	// 反射在特定地址上，创建特定类型实例，原本类型的指针类型；case：fd.Typ=int, val是*int
+//	//	val := reflect.NewAt(fd.Typ, fdAddress)
+//	//	vals = append(vals, val.Interface())
+//	//}
+//	//err = row.Scan(vals...)
+//	//if err != nil {
+//	//	return nil, err
+//	//}
+//
+//	//return tp, nil
+//}
 
 func (s Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {
 	q, err := s.Build()

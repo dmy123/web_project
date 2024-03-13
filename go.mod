@@ -7,6 +7,8 @@ require (
 	github.com/beego/beego/v2 v2.1.6
 	github.com/gin-gonic/gin v1.9.1
 	github.com/glebarez/sqlite v1.10.0
+	github.com/go-sql-driver/mysql v1.7.0
+	github.com/gotomicro/ekit v0.0.6
 	github.com/prometheus/client_golang v1.16.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel v1.24.0

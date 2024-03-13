@@ -6,6 +6,9 @@ import (
 	"awesomeProject1/orm/model"
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"log"
+	"time"
 )
 
 type DBOption func(db *DB)
@@ -17,6 +20,18 @@ type DB struct {
 
 	//creator valuer.Creator
 	//dialect Dialect
+}
+
+// Wait 会等待数据库连接
+// 注意只能用于测试
+func (db *DB) Wait() error {
+	err := db.db.Ping()
+	for err == driver.ErrBadConn {
+		log.Printf("等待数据库启动...")
+		err = db.db.Ping()
+		time.Sleep(time.Second)
+	}
+	return err
 }
 
 func Open(driver string, dataSourceName string, opts ...DBOption) (*DB, error) {
