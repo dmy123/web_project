@@ -15,6 +15,20 @@ func TableOf(entity any) Table {
 	}
 }
 
+func (t Table) As(alias string) Table {
+	return Table{
+		entity: t.entity,
+		alias:  alias,
+	}
+}
+
+func (t Table) C(name string) Column {
+	return Column{
+		name:  name,
+		table: t,
+	}
+}
+
 func (t Table) table() {
 	//TODO implement me
 	panic("implement me")
@@ -52,6 +66,28 @@ type Join struct {
 func (j Join) table() {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (j Join) Join(right TableReference) *JoinBuilder {
+	return &JoinBuilder{
+		left:  j,
+		right: right,
+		typ:   "JOIN",
+	}
+}
+func (j Join) LeftJoin(right TableReference) *JoinBuilder {
+	return &JoinBuilder{
+		left:  j,
+		right: right,
+		typ:   "LEFT JOIN",
+	}
+}
+func (j Join) RightJoin(right TableReference) *JoinBuilder {
+	return &JoinBuilder{
+		left:  j,
+		right: right,
+		typ:   "RIGHT JOIN",
+	}
 }
 
 type JoinBuilder struct {

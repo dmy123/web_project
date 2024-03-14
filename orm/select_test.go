@@ -42,7 +42,7 @@ func TestSelector_Join(t *testing.T) {
 			name: "specify table",
 			s:    NewSelector[Order](db).From(TableOf(&OrderDetail{})),
 			wantQuery: &Query{
-				SQL: "SELECT * FROM `order_detail`",
+				SQL: "SELECT * FROM `order_detail`;",
 			},
 		},
 		{
@@ -60,13 +60,65 @@ func TestSelector_Join(t *testing.T) {
 		{
 			name: "join-on",
 			s: func() QueryBuilder {
-				t1 := TableOf(&Order{})
-				t2 := TableOf(&OrderDetail{})
-				t3 := t1.Join(t2).On(C("Id").Eq(C("OrderId")))
+				t1 := TableOf(&Order{}).As("t1")
+				t2 := TableOf(&OrderDetail{}).As("t2")
+				t3 := t1.Join(t2).On(t1.C("Id").Eq(t2.C("OrderId")))
 				return NewSelector[Order](db).From(t3)
 			}(),
 			wantQuery: &Query{
-				SQL: "SELECT * FROM (`order` JOIN `order_detail` ON `id`=`order_id`);",
+				SQL: "SELECT * FROM (`order` AS `t1` JOIN `order_detail` AS `t2` ON (`t1`.`id`= `t2`.`order_id`));",
+			},
+		},
+		{
+			name: "left join",
+			s: func() QueryBuilder {
+				t1 := TableOf(&Order{})
+				t2 := TableOf(&OrderDetail{})
+				t3 := t1.LeftJoin(t2).Using("UsingCol1", "UsingCol2")
+				return NewSelector[Order](db).From(t3)
+			}(),
+			wantQuery: &Query{
+				SQL: "SELECT * FROM (`order` LEFT JOIN `order_detail` USING (`using_col1`, `using_col2`));",
+			},
+		},
+		{
+			name: "right join",
+			s: func() QueryBuilder {
+				t1 := TableOf(&Order{})
+				t2 := TableOf(&OrderDetail{})
+				t3 := t1.RightJoin(t2).Using("UsingCol1", "UsingCol2")
+				return NewSelector[Order](db).From(t3)
+			}(),
+			wantQuery: &Query{
+				SQL: "SELECT * FROM (`order` RIGHT JOIN `order_detail` USING (`using_col1`, `using_col2`));",
+			},
+		},
+		{
+			name: "join join",
+			s: func() QueryBuilder {
+				t1 := TableOf(&Order{}).As("t1")
+				t2 := TableOf(&OrderDetail{}).As("t2")
+				t3 := t1.Join(t2).On(t1.C("Id").Eq(t2.C("OrderId")))
+				t4 := TableOf(&Item{}).As("t4")
+				t5 := t3.Join(t4).On(t2.C("ItemId").Eq(t4.C("Id")))
+				return NewSelector[Order](db).From(t5)
+			}(),
+			wantQuery: &Query{
+				SQL: "SELECT * FROM ((`order` AS `t1` JOIN `order_detail` AS `t2` ON (`t1`.`id`= `t2`.`order_id`)) JOIN `item` AS `t4` ON (`t2`.`item_id`= `t4`.`id`));",
+			},
+		},
+		{
+			name: "table join",
+			s: func() QueryBuilder {
+				t1 := TableOf(&Order{}).As("t1")
+				t2 := TableOf(&OrderDetail{}).As("t2")
+				t3 := t1.Join(t2).On(t1.C("Id").Eq(t2.C("OrderId")))
+				t4 := TableOf(&Item{}).As("t4")
+				t5 := t4.Join(t3).On(t2.C("ItemId").Eq(t4.C("Id")))
+				return NewSelector[Order](db).From(t5)
+			}(),
+			wantQuery: &Query{
+				SQL: "SELECT * FROM (`item` AS `t4` JOIN (`order` AS `t1` JOIN `order_detail` AS `t2` ON (`t1`.`id`= `t2`.`order_id`)) ON (`t2`.`item_id`= `t4`.`id`));",
 			},
 		},
 	}

@@ -125,6 +125,12 @@ func (s *Selector[T]) buildTable(table TableReference) error {
 			return err
 		}
 		s.Quoter(m.TableName)
+
+		//fd, ok := m.FieldMap[t.]
+		if t.alias != "" {
+			s.sb.WriteString(" AS ")
+			s.Quoter(t.alias)
+		}
 	case Join:
 		s.sb.WriteByte('(')
 		err := s.buildTable(t.left)
@@ -152,7 +158,7 @@ func (s *Selector[T]) buildTable(table TableReference) error {
 		} else if len(t.on) > 0 {
 			s.sb.WriteString(" ON ")
 			p := t.on[0]
-			for i := 0; i < len(t.on); i++ {
+			for i := 1; i < len(t.on); i++ {
 				p = p.And(t.on[i])
 			}
 

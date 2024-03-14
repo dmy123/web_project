@@ -42,7 +42,6 @@ func (s *builder) buildExpression(expr Expression) error {
 			s.sb.WriteString(exp.op.String())
 			s.sb.WriteByte(' ')
 		}
-
 		if err := s.buildExpression(exp.right); err != nil {
 			return err
 		}
@@ -50,7 +49,6 @@ func (s *builder) buildExpression(expr Expression) error {
 	case Column:
 		exp.alias = ""
 		return s.buildColumn(exp)
-	case Op:
 	case value:
 		s.addArg(exp.val)
 		s.sb.WriteByte('?')
@@ -66,21 +64,43 @@ func (s *builder) buildExpression(expr Expression) error {
 }
 
 func (s *builder) buildColumn(column Column) error {
-	s.sb.WriteByte('`')
-	fd, exist := s.model.FieldMap[column.name]
-	if !exist {
-		return errs.NewErrUnknownField(column.name)
-	}
-	s.sb.WriteString(fd.ColName)
-	s.sb.WriteByte('`')
+	switch table := column.table.(type) {
+	case Table:
+		m, err := s.r.Get(table.entity)
+		if err != nil {
+			return err
+		}
+		fd, exist := m.FieldMap[column.name]
+		if !exist {
+			return errs.NewErrUnknownField(column.name)
+		}
+		if table.alias != "" {
+			s.Quoter(table.alias)
+		} else {
+			s.Quoter(m.TableName)
+		}
+		s.sb.WriteByte('.')
+		s.Quoter(fd.ColName)
+	case nil:
+		s.sb.WriteByte('`')
+		fd, exist := s.model.FieldMap[column.name]
+		if !exist {
+			return errs.NewErrUnknownField(column.name)
+		}
+		colName := fd.ColName
+		//colName = column.name
+		s.sb.WriteString(colName)
+		s.sb.WriteByte('`')
 
-	if column.alias != "" {
-		s.sb.WriteByte(' ')
-		s.sb.WriteString("AS")
-		s.sb.WriteByte(' ')
-		s.sb.WriteByte('`')
-		s.sb.WriteString(column.alias)
-		s.sb.WriteByte('`')
+		if column.alias != "" {
+			s.sb.WriteByte(' ')
+			s.sb.WriteString("AS")
+			s.sb.WriteByte(' ')
+			s.Quoter(column.alias)
+		}
+	//case TableReference:
+	default:
+
 	}
 
 	return nil
