@@ -13,6 +13,76 @@ import (
 	"testing"
 )
 
+func TestSelector_Join(t *testing.T) {
+	db := memoryDB(t)
+	type Order struct {
+		Id        int
+		UsingCol1 string
+		UsingCol2 string
+	}
+
+	type OrderDetail struct {
+		OrderId int
+		ItemId  int
+
+		UsingCol1 string
+		UsingCol2 string
+	}
+
+	type Item struct {
+		Id int
+	}
+	tests := []struct {
+		name      string
+		s         QueryBuilder
+		wantQuery *Query
+		wantErr   error
+	}{
+		{
+			name: "specify table",
+			s:    NewSelector[Order](db).From(TableOf(&OrderDetail{})),
+			wantQuery: &Query{
+				SQL: "SELECT * FROM `order_detail`",
+			},
+		},
+		{
+			name: "join-using",
+			s: func() QueryBuilder {
+				t1 := TableOf(&Order{})
+				t2 := TableOf(&OrderDetail{})
+				t3 := t1.Join(t2).Using("UsingCol1", "UsingCol2")
+				return NewSelector[Order](db).From(t3)
+			}(),
+			wantQuery: &Query{
+				SQL: "SELECT * FROM (`order` JOIN `order_detail` USING (`using_col1`, `using_col2`));",
+			},
+		},
+		{
+			name: "join-on",
+			s: func() QueryBuilder {
+				t1 := TableOf(&Order{})
+				t2 := TableOf(&OrderDetail{})
+				t3 := t1.Join(t2).On(C("Id").Eq(C("OrderId")))
+				return NewSelector[Order](db).From(t3)
+			}(),
+			wantQuery: &Query{
+				SQL: "SELECT * FROM (`order` JOIN `order_detail` ON `id`=`order_id`);",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q, err := tt.s.Build()
+			assert.Equal(t, tt.wantErr, err)
+			if err != nil {
+				return
+			}
+			assert.Equal(t, tt.wantQuery, q)
+		})
+	}
+}
+
 func TestSelector_Build(t *testing.T) {
 	//db, err := Open()
 	//require.NoError(t, err)
@@ -43,32 +113,32 @@ func TestSelector_Build(t *testing.T) {
 				Args: nil,
 			},
 		},
-		{
-			name:    "from",
-			builder: NewSelector[TestModel](memoryDB(t)).From("`TestModel`"),
-			wantQuery: &Query{
-				SQL:  "SELECT * FROM `TestModel`;",
-				Args: nil,
-			},
-		},
-		{
-			name: "empty from",
-			//builder: (&Selector[TestModel]{}).From(""),
-			builder: NewSelector[TestModel](memoryDB(t)).From(""),
-			wantQuery: &Query{
-				//SQL:  "SELECT * FROM `TestModel`;",
-				Args: nil,
-				SQL:  "SELECT * FROM `test_model`;",
-			},
-		},
-		{
-			name:    "from db",
-			builder: NewSelector[TestModel](memoryDB(t)).From("`test_db`.`test_model`"),
-			wantQuery: &Query{
-				SQL:  "SELECT * FROM `test_db`.`test_model`;",
-				Args: nil,
-			},
-		},
+		//{
+		//	name:    "from",
+		//	builder: NewSelector[TestModel](memoryDB(t)).From("`TestModel`"),
+		//	wantQuery: &Query{
+		//		SQL:  "SELECT * FROM `TestModel`;",
+		//		Args: nil,
+		//	},
+		//},
+		//{
+		//	name: "empty from",
+		//	//builder: (&Selector[TestModel]{}).From(""),
+		//	builder: NewSelector[TestModel](memoryDB(t)).From(""),
+		//	wantQuery: &Query{
+		//		//SQL:  "SELECT * FROM `TestModel`;",
+		//		Args: nil,
+		//		SQL:  "SELECT * FROM `test_model`;",
+		//	},
+		//},
+		//{
+		//	name:    "from db",
+		//	builder: NewSelector[TestModel](memoryDB(t)).From("`test_db`.`test_model`"),
+		//	wantQuery: &Query{
+		//		SQL:  "SELECT * FROM `test_db`.`test_model`;",
+		//		Args: nil,
+		//	},
+		//},
 		{
 			name:    "empty where",
 			builder: NewSelector[TestModel](memoryDB(t)).Where(),

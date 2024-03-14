@@ -34,3 +34,7 @@ func NewErrInvalidTagContent(pair string) error {
 func NewErrUnsupportedAssignable(expr any) error {
 	return fmt.Errorf("orm：不支持的表达式类型 %v", expr)
 }
+
+func NewErrUnsupportedTable(table any) error {
+	return fmt.Errorf("orm：不支持的TableReference类型 %v", table)
+}

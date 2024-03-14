@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"awesomeProject1/orm/internal/errs"
 	"context"
 	"errors"
 	"strings"
@@ -12,7 +13,7 @@ type Selectable interface {
 }
 
 type Selector[T any] struct {
-	table string
+	table TableReference
 	//model *model.Model
 	where []Predicate
 	//sb    *strings.Builder
@@ -73,18 +74,23 @@ func (s *Selector[T]) Build() (*Query, error) {
 
 	s.sb.WriteString("FROM ")
 	// 反射拿到表名
-	if s.table == "" {
-		//var t T
-		//Typ := reflect.TypeOf(t)
-		//r.table = Typ.Name()
-		s.sb.WriteByte('`')
-		//r.sb.WriteString(Typ.Name())
-		s.sb.WriteString(s.model.TableName)
-		s.sb.WriteByte('`')
-	} else {
-		//sb.WriteByte('`')
-		s.sb.WriteString(s.table)
-		//sb.WriteByte('`')
+	//if s.table == "" {
+	//	//var t T
+	//	//Typ := reflect.TypeOf(t)
+	//	//r.table = Typ.Name()
+	//	s.sb.WriteByte('`')
+	//	//r.sb.WriteString(Typ.Name())
+	//	s.sb.WriteString(s.model.TableName)
+	//	s.sb.WriteByte('`')
+	//} else {
+	//	//sb.WriteByte('`')
+	//	s.sb.WriteString(s.table)
+	//	//sb.WriteByte('`')
+	//}
+
+	err = s.buildTable(s.table)
+	if err != nil {
+		return nil, err
 	}
 
 	// WHERE
@@ -108,6 +114,57 @@ func (s *Selector[T]) Build() (*Query, error) {
 		SQL:  s.sb.String(),
 		Args: s.args,
 	}, nil
+}
+func (s *Selector[T]) buildTable(table TableReference) error {
+	switch t := table.(type) {
+	case nil:
+		s.Quoter(s.model.TableName)
+	case Table:
+		m, err := s.r.Get(t.entity)
+		if err != nil {
+			return err
+		}
+		s.Quoter(m.TableName)
+	case Join:
+		s.sb.WriteByte('(')
+		err := s.buildTable(t.left)
+		if err != nil {
+			return err
+		}
+		s.sb.WriteByte(' ')
+		s.sb.WriteString(t.typ)
+		s.sb.WriteByte(' ')
+		err = s.buildTable(t.right)
+		if err != nil {
+			return err
+		}
+		if len(t.using) > 0 {
+			s.sb.WriteString(" USING ")
+			s.sb.WriteByte('(')
+
+			for j, u := range t.using {
+				if j > 0 {
+					s.sb.WriteString(", ")
+				}
+				s.buildColumn(C(u))
+			}
+			s.sb.WriteByte(')')
+		} else if len(t.on) > 0 {
+			s.sb.WriteString(" ON ")
+			p := t.on[0]
+			for i := 0; i < len(t.on); i++ {
+				p = p.And(t.on[i])
+			}
+
+			if err = s.buildExpression(p); err != nil {
+				return err
+			}
+		}
+		s.sb.WriteByte(')')
+	default:
+		return errs.NewErrUnsupportedTable(t)
+	}
+	return nil
 }
 
 //func (r *Selector[T]) buildExpression(expr Expression) error {
@@ -267,7 +324,7 @@ func (s *Selector[T]) Select(cols ...Selectable) *Selector[T] {
 	return s
 }
 
-func (s *Selector[T]) From(table string) *Selector[T] {
+func (s *Selector[T]) From(table TableReference) *Selector[T] {
 	s.table = table
 	return s
 }
