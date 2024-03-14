@@ -47,15 +47,15 @@ func NewSelector[T any](sess Session) *Selector[T] {
 	}
 }
 
-//func (s *Selector[T]) Demo[S any]() (*Query, error) {
+//func (r *Selector[T]) Demo[S any]() (*Query, error) {
 //
 //}
 
 func (s *Selector[T]) Build() (*Query, error) {
 	//var sb strings.Builder
-	//sb := s.sb
-	//if s.sb == nil {
-	//	s.sb = &strings.Builder{}
+	//sb := r.sb
+	//if r.sb == nil {
+	//	r.sb = &strings.Builder{}
 	//}
 	var err error
 	//r := &registry{}
@@ -76,9 +76,9 @@ func (s *Selector[T]) Build() (*Query, error) {
 	if s.table == "" {
 		//var t T
 		//Typ := reflect.TypeOf(t)
-		//s.table = Typ.Name()
+		//r.table = Typ.Name()
 		s.sb.WriteByte('`')
-		//s.sb.WriteString(Typ.Name())
+		//r.sb.WriteString(Typ.Name())
 		s.sb.WriteString(s.model.TableName)
 		s.sb.WriteByte('`')
 	} else {
@@ -90,12 +90,12 @@ func (s *Selector[T]) Build() (*Query, error) {
 	// WHERE
 	if len(s.where) > 0 {
 		s.sb.WriteString(" WHERE ")
-		//p := s.where[0]
-		//for i := 1; i < len(s.where); i++ {
-		//	p = p.And(s.where[i])
+		//p := r.where[0]
+		//for i := 1; i < len(r.where); i++ {
+		//	p = p.And(r.where[i])
 		//}
 		//
-		//if err := s.buildExpression(p); err != nil {
+		//if err := r.buildExpression(p); err != nil {
 		//	return nil, err
 		//}
 		if err = s.buildPredicates(s.where); err != nil {
@@ -110,7 +110,7 @@ func (s *Selector[T]) Build() (*Query, error) {
 	}, nil
 }
 
-//func (s *Selector[T]) buildExpression(expr Expression) error {
+//func (r *Selector[T]) buildExpression(expr Expression) error {
 //	switch exp := expr.(type) {
 //	case nil:
 //		return nil
@@ -119,41 +119,41 @@ func (s *Selector[T]) Build() (*Query, error) {
 //		// p.left构建好
 //		// p.Op
 //		// p.right
-//		s.sb.WriteByte('(')
-//		if err := s.buildExpression(exp.left); err != nil {
+//		r.sb.WriteByte('(')
+//		if err := r.buildExpression(exp.left); err != nil {
 //			return err
 //		}
-//		//s.sb.WriteByte(' ')
+//		//r.sb.WriteByte(' ')
 //		if exp.op.String() != "" {
-//			s.sb.WriteString(exp.op.String())
-//			s.sb.WriteByte(' ')
+//			r.sb.WriteString(exp.op.String())
+//			r.sb.WriteByte(' ')
 //		}
 //
-//		if err := s.buildExpression(exp.right); err != nil {
+//		if err := r.buildExpression(exp.right); err != nil {
 //			return err
 //		}
-//		s.sb.WriteByte(')')
+//		r.sb.WriteByte(')')
 //	case Column:
-//		//s.sb.WriteByte('`')
-//		//fd, exist := s.model.FieldMap[exp.name]
+//		//r.sb.WriteByte('`')
+//		//fd, exist := r.model.FieldMap[exp.name]
 //		//if !exist {
 //		//	return errs.NewErrUnknownField(exp.name)
 //		//}
-//		//s.sb.WriteString(fd.ColName)
-//		//s.sb.WriteByte('`')
-//		//s.sb.WriteByte(' ')
+//		//r.sb.WriteString(fd.ColName)
+//		//r.sb.WriteByte('`')
+//		//r.sb.WriteByte(' ')
 //		exp.alias = ""
-//		return s.buildColumn(exp)
+//		return r.buildColumn(exp)
 //	case Op:
 //	case value:
-//		s.addArg(exp.val)
-//		//s.args = append(s.args, raw.(value).val)
-//		s.sb.WriteByte('?')
+//		r.addArg(exp.val)
+//		//r.args = append(r.args, raw.(value).val)
+//		r.sb.WriteByte('?')
 //	case RawExpr:
-//		s.sb.WriteByte('(')
-//		s.sb.WriteString(exp.raw)
-//		s.addArg(exp.args...)
-//		s.sb.WriteByte(')')
+//		r.sb.WriteByte('(')
+//		r.sb.WriteString(exp.raw)
+//		r.addArg(exp.args...)
+//		r.sb.WriteByte(')')
 //	default:
 //		return errs.NewErrUnsupportedExpression(expr)
 //	}
@@ -162,15 +162,15 @@ func (s *Selector[T]) Build() (*Query, error) {
 
 func (s *Selector[T]) buildColumns() (err error) {
 	if len(s.cols) > 0 {
-		//s.sb.WriteByte(' ')
-		//for i, col := range s.cols {
-		//	s.sb.WriteByte('`')
-		//	s.sb.WriteString(col)
-		//	s.sb.WriteByte('`')
-		//	if i < len(s.cols)-1 {
-		//		s.sb.WriteByte(',')
+		//r.sb.WriteByte(' ')
+		//for i, col := range r.cols {
+		//	r.sb.WriteByte('`')
+		//	r.sb.WriteString(col)
+		//	r.sb.WriteByte('`')
+		//	if i < len(r.cols)-1 {
+		//		r.sb.WriteByte(',')
 		//	}
-		//	s.sb.WriteByte(' ')
+		//	r.sb.WriteByte(' ')
 		//}
 		for i, col := range s.cols {
 			s.sb.WriteByte(' ')
@@ -209,7 +209,7 @@ func (s *Selector[T]) buildColumns() (err error) {
 			if i < len(s.cols)-1 {
 				s.sb.WriteByte(',')
 			}
-			//s.sb.WriteByte(' ')
+			//r.sb.WriteByte(' ')
 		}
 		s.sb.WriteByte(' ')
 	} else {
@@ -218,48 +218,48 @@ func (s *Selector[T]) buildColumns() (err error) {
 	return nil
 }
 
-//func (s *Selector[T]) buildColumn(column Column) error {
-//	s.sb.WriteByte('`')
-//	fd, exist := s.model.FieldMap[column.name]
+//func (r *Selector[T]) buildColumn(column Column) error {
+//	r.sb.WriteByte('`')
+//	fd, exist := r.model.FieldMap[column.name]
 //	if !exist {
 //		return errs.NewErrUnknownField(column.name)
 //	}
-//	s.sb.WriteString(fd.ColName)
-//	s.sb.WriteByte('`')
+//	r.sb.WriteString(fd.ColName)
+//	r.sb.WriteByte('`')
 //
 //	if column.alias != "" {
-//		s.sb.WriteByte(' ')
-//		s.sb.WriteString("AS")
-//		s.sb.WriteByte(' ')
-//		s.sb.WriteByte('`')
-//		s.sb.WriteString(column.alias)
-//		s.sb.WriteByte('`')
+//		r.sb.WriteByte(' ')
+//		r.sb.WriteString("AS")
+//		r.sb.WriteByte(' ')
+//		r.sb.WriteByte('`')
+//		r.sb.WriteString(column.alias)
+//		r.sb.WriteByte('`')
 //	}
 //
-//	//s.sb.WriteByte(' ')
+//	//r.sb.WriteByte(' ')
 //	return nil
 //}
 //
-//func (s *Selector[T]) addArg(vals ...any) *Selector[T] {
+//func (r *Selector[T]) addArg(vals ...any) *Selector[T] {
 //	if len(vals) == 0 {
 //		return nil
 //	}
-//	if s.args == nil {
-//		s.args = make([]any, 0, 4) // 给定预估容量，避免频繁扩容
+//	if r.args == nil {
+//		r.args = make([]any, 0, 4) // 给定预估容量，避免频繁扩容
 //	}
-//	s.args = append(s.args, vals...)
-//	return s
+//	r.args = append(r.args, vals...)
+//	return r
 //}
 
 // select最简实现
-//func (s *Selector[T]) Select(cols ...string) *Selector[T] {
-//	s.cols = cols
-//	return s
+//func (r *Selector[T]) Select(cols ...string) *Selector[T] {
+//	r.cols = cols
+//	return r
 //}
 //
-//func (s *Selector[T]) Select(col string) *Selector[T] {
-//	s.col = col
-//	return s
+//func (r *Selector[T]) Select(col string) *Selector[T] {
+//	r.col = col
+//	return r
 //}
 
 func (s *Selector[T]) Select(cols ...Selectable) *Selector[T] {
@@ -278,14 +278,14 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 }
 
 // 基于reflect
-//func (s Selector[T]) Get(ctx context.Context) (*T, error) {
-//	q, err := s.Build()
+//func (r Selector[T]) Get(ctx context.Context) (*T, error) {
+//	q, err := r.Build()
 //	if err != nil {
 //		return nil, err
 //	}
 //
 //	//var db *sql.DB
-//	db := s.db.db
+//	db := r.db.db
 //	// 发起查询，处理结果集
 //	row, err := db.QueryContext(ctx, q.SQL, q.Args...)
 //	if err != nil {
@@ -297,7 +297,7 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //		return nil, ErrNoRows
 //	}
 //
-//	//s.model.FieldMap
+//	//r.model.FieldMap
 //
 //	// 问题： 类型、顺序要匹配
 //
@@ -311,7 +311,7 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //	vals := make([]any, 0, len(cs))
 //	valElems := make([]reflect.Value, 0, len(cs))
 //	for _, c := range cs {
-//		fd, ok := s.model.ColumnMap[c]
+//		fd, ok := r.model.ColumnMap[c]
 //		if !ok {
 //			return nil, errs.NewErrUnknownColumn(c)
 //		}
@@ -319,7 +319,7 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //		vals = append(vals, val.Interface())
 //		valElems = append(valElems, val.Elem())
 //
-//		//for _, fd := range s.model.FieldMap {
+//		//for _, fd := range r.model.FieldMap {
 //		//	if fd.ColName == c {
 //		//		// 反射创建新的实例
 //		//		val := reflect.New(fd.Typ)
@@ -334,13 +334,13 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //
 //	//tpValue := reflect.ValueOf(tp)
 //	//for i, c := range cs {
-//	//	fd, ok := s.model.ColumnMap[c]
+//	//	fd, ok := r.model.ColumnMap[c]
 //	//	if !ok {
 //	//		return nil, errs.NewErrUnknownColumn(c)
 //	//	}
 //	//	tpValue.Elem().FieldByName(fd.GoName).Set(valElems[i])
 //	//	//tpValue.Elem().FieldByName(fd.GoName).Set(reflect.ValueOf(vals[i]).Elem())
-//	//	//for _, fd := range s.model.FieldMap {
+//	//	//for _, fd := range r.model.FieldMap {
 //	//	//	if fd.ColName == c {
 //	//	//		tpValue.Elem().FieldByName(fd.GoName).Set(reflect.ValueOf(vals[i]).Elem())
 //	//	//	}
@@ -349,13 +349,13 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //
 //	tpValueElem := reflect.ValueOf(tp).Elem()
 //	for i, c := range cs {
-//		fd, ok := s.model.ColumnMap[c]
+//		fd, ok := r.model.ColumnMap[c]
 //		if !ok {
 //			return nil, errs.NewErrUnknownColumn(c)
 //		}
 //		tpValueElem.FieldByName(fd.GoName).Set(valElems[i])
 //		//tpValue.Elem().FieldByName(fd.GoName).Set(reflect.ValueOf(vals[i]).Elem())
-//		//for _, fd := range s.model.FieldMap {
+//		//for _, fd := range r.model.FieldMap {
 //		//	if fd.ColName == c {
 //		//		tpValue.Elem().FieldByName(fd.GoName).Set(reflect.ValueOf(vals[i]).Elem())
 //		//	}
@@ -367,21 +367,21 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //}
 
 // 基于unsafe
-//func (s *Selector[T]) Get(ctx context.Context) (result *T, err error) {
-//	if s.model == nil {
-//		s.model, err = s.r.Get(new(T))
+//func (r *Selector[T]) Get(ctx context.Context) (result *T, err error) {
+//	if r.model == nil {
+//		r.model, err = r.r.Get(new(T))
 //		if err != nil {
 //			return nil, err
 //		}
 //	}
-//	root := s.getHandler
-//	for i := len(s.mdls) - 1; i >= 0; i-- {
-//		root = s.mdls[i](root)
+//	root := r.getHandler
+//	for i := len(r.mdls) - 1; i >= 0; i-- {
+//		root = r.mdls[i](root)
 //	}
 //	res := root(ctx, &QueryContext{
 //		Type:    "SELECT",
-//		Builder: s,
-//		Model:   s.model,
+//		Builder: r,
+//		Model:   r.model,
 //	})
 //	//var t *T
 //	//if val, ok := res.Result.(*T);ok {
@@ -395,7 +395,17 @@ func (s *Selector[T]) Where(ps ...Predicate) *Selector[T] {
 //}
 
 func (s *Selector[T]) Get(ctx context.Context) (result *T, err error) {
-	res := get[T](ctx, s.sess, s.core, s)
+	if s.model == nil {
+		s.model, err = s.r.Get(new(T))
+		if err != nil {
+			return nil, err
+		}
+	}
+	res := get[T](ctx, s.sess, s.core, &QueryContext{
+		Type:    "SELECT",
+		Builder: s,
+		Model:   s.model,
+	})
 	if res.Result != nil {
 		return res.Result.(*T), res.Err
 	}
@@ -430,15 +440,15 @@ func getHandler[T any](ctx context.Context, sess Session, c core, qc *QueryConte
 	}
 }
 
-//func (s *Selector[T]) getHandler(ctx context.Context, qc *QueryContext) *QueryResult {
-//	q, err := s.Build()
+//func (r *Selector[T]) getHandler(ctx context.Context, qc *QueryContext) *QueryResult {
+//	q, err := r.Build()
 //	if err != nil {
 //		//return nil, err
 //		return &QueryResult{Err: err}
 //	}
 //
 //	//var db *sql.DB
-//	sess := s.sess
+//	sess := r.sess
 //	// 发起查询，处理结果集
 //	row, err := sess.queryContext(ctx, q.SQL, q.Args...)
 //	if err != nil {
@@ -453,14 +463,14 @@ func getHandler[T any](ctx context.Context, sess Session, c core, qc *QueryConte
 //
 //	tp := new(T)
 //	//var creator valuer.Creator
-//	err = s.creator(s.model, tp).SetColumns(row)
+//	err = r.creator(r.model, tp).SetColumns(row)
 //	//return tp, err
 //	return &QueryResult{
 //		Result: tp,
 //		Err:    err,
 //	}
 //
-//	////s.model.FieldMap
+//	////r.model.FieldMap
 //	//
 //	//// 问题： 类型、顺序要匹配
 //	//
@@ -474,7 +484,7 @@ func getHandler[T any](ctx context.Context, sess Session, c core, qc *QueryConte
 //	//vals := make([]any, 0, len(cs))
 //	//address := reflect.ValueOf(tp).UnsafePointer()
 //	//for _, c := range cs {
-//	//	fd, ok := s.model.ColumnMap[c]
+//	//	fd, ok := r.model.ColumnMap[c]
 //	//	if !ok {
 //	//		return nil, errs.NewErrUnknownColumn(c)
 //	//	}

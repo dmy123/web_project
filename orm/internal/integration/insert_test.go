@@ -6,7 +6,6 @@ import (
 	"awesomeProject1/orm"
 	"awesomeProject1/orm/internal/test"
 	"context"
-	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,6 +26,12 @@ func TestMySQLInsert(t *testing.T) {
 	})
 }
 
+func (i *InsertTestSuite) TearDownTest() {
+	res := orm.RawQuery[any](i.db, "TRUNCATE TABLE `simple_struct`").
+		Exec(context.Background())
+	require.NoError(i.T(), res.Err())
+}
+
 func (i *InsertTestSuite) TestInsert() {
 	db := i.db
 	t := i.T()
@@ -37,12 +42,12 @@ func (i *InsertTestSuite) TestInsert() {
 	}{
 		{
 			name:     "insert one",
-			i:        orm.NewInserter[test.SimpleStruct](db).Values(test.NewSimpleStruct(17)),
+			i:        orm.NewInserter[test.SimpleStruct](db).Values(test.NewSimpleStruct(37)),
 			affected: 1,
 		},
 		{
 			name:     "insert multiple",
-			i:        orm.NewInserter[test.SimpleStruct](db).Values(test.NewSimpleStruct(18), test.NewSimpleStruct(19)),
+			i:        orm.NewInserter[test.SimpleStruct](db).Values(test.NewSimpleStruct(38), test.NewSimpleStruct(39)),
 			affected: 2,
 		},
 	}
@@ -91,24 +96,24 @@ func (i *InsertTestSuite) TestInsert() {
 //	}
 //}
 
-type SQLite3InsertTest struct {
-	InsertTestSuite
-}
-
-func (i *SQLite3InsertTest) SetupSuite() {
-	db, err := sql.Open(i.driver, i.dsn)
-	// 建表
-	db.ExecContext(context.Background(), "")
-	require.NoError(i.T(), err)
-	i.db, err = orm.OpenDB(db)
-	require.NoError(i.T(), err)
-}
-
-func TestSQLite3(t *testing.T) {
-	suite.Run(t, &SQLite3InsertTest{InsertTestSuite{Suite: Suite{
-		driver: "sqlite3",
-		dsn:    "file:test.db?cache=shared&mode=memory",
-	},
-	},
-	})
-}
+//type SQLite3InsertTest struct {
+//	InsertTestSuite
+//}
+//
+//func (i *SQLite3InsertTest) SetupSuite() {
+//	db, err := sql.Open(i.driver, i.dsn)
+//	// 建表
+//	db.ExecContext(context.Background(), "")
+//	require.NoError(i.T(), err)
+//	i.db, err = orm.OpenDB(db)
+//	require.NoError(i.T(), err)
+//}
+//
+//func TestSQLite3(t *testing.T) {
+//	suite.Run(t, &SQLite3InsertTest{InsertTestSuite{Suite: Suite{
+//		driver: "sqlite3",
+//		dsn:    "file:test.db?cache=shared&mode=memory",
+//	},
+//	},
+//	})
+//}

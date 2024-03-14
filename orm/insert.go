@@ -209,26 +209,41 @@ func (i *Inserter[T]) Build() (res *Query, err error) {
 	}, nil
 }
 
-var _ Handler = (&Inserter[any]{}).execHandler
+//var _ Handler = (&Inserter[any]{}).execHandler
 
-func (i *Inserter[T]) execHandler(ctx context.Context, qc *QueryContext) *QueryResult {
-	q, err := i.Build()
-	if err != nil {
-		return &QueryResult{
-			Result: Result{
-				err: err,
-			},
-			Err: err,
-		}
+//func (i *Inserter[T]) execHandler(ctx context.Context, qc *QueryContext) *QueryResult {
+//	q, err := i.Build()
+//	if err != nil {
+//		return &QueryResult{
+//			Result: Result{
+//				err: err,
+//			},
+//			Err: err,
+//		}
+//	}
+//	r, err := i.sess.execContext(ctx, q.SQL, q.Args...)
+//	return &QueryResult{
+//		Result: Result{
+//			err: err,
+//			res: r,
+//		},
+//		Err: err,
+//	}
+//}
+
+func exec[T any](ctx context.Context, sess Session, c core, qc *QueryContext) *QueryResult {
+	var root Handler = func(ctx context.Context, qc *QueryContext) *QueryResult {
+		return execHandler(ctx, sess, c, qc)
 	}
-	r, err := i.sess.execContext(ctx, q.SQL, q.Args...)
-	return &QueryResult{
-		Result: Result{
-			err: err,
-			res: r,
-		},
-		Err: err,
+
+	for j := len(c.mdls) - 1; j >= 0; j-- {
+		root = c.mdls[j](root)
 	}
+	return root(ctx, &QueryContext{
+		Type:    "INSERT",
+		Builder: qc.Builder,
+		Model:   c.model,
+	})
 }
 
 func (i *Inserter[T]) Exec(ctx context.Context) Result {
@@ -250,11 +265,24 @@ func (i *Inserter[T]) Exec(ctx context.Context) Result {
 	//	res: r,
 	//	err: err,
 	//}
-	root := i.execHandler
-	for j := len(i.mdls) - 1; j >= 0; j-- {
-		root = i.mdls[j](root)
-	}
-	res := root(ctx, &QueryContext{
+	//root := i.execHandler
+	//var root Handler = func(ctx context.Context, qc *QueryContext) *QueryResult {
+	//	return execHandler(ctx, i.sess, i.core, &QueryContext{
+	//		Type: "INSERT",
+	//		Builder: i,
+	//		Model: i.model,
+	//	})
+	//}
+	//
+	//for j := len(i.mdls) - 1; j >= 0; j-- {
+	//	root = i.mdls[j](root)
+	//}
+	//res := root(ctx, &QueryContext{
+	//	Type:    "INSERT",
+	//	Builder: i,
+	//	Model:   i.model,
+	//})
+	res := exec[T](ctx, i.sess, i.core, &QueryContext{
 		Type:    "INSERT",
 		Builder: i,
 		Model:   i.model,

@@ -24,10 +24,14 @@ func TestMySQLSelect(t *testing.T) {
 	}})
 }
 
+func (i *SelectSuite) TearDownSuite() {
+	orm.RawQuery[any](i.db, "TRUNCATE TABLE `simple_struct`").Exec(context.Background())
+}
+
 func (s *SelectSuite) SetupSuite() {
 	s.Suite.SetupSuite()
 	res := orm.NewInserter[test.SimpleStruct](s.db).Values(
-		test.NewSimpleStruct(100),
+		test.NewSimpleStruct(102),
 	).Exec(context.Background())
 	require.NoError(s.T(), res.Err())
 }
@@ -41,8 +45,8 @@ func (s *SelectSuite) TestSelect() {
 	}{
 		{
 			name:    "get data",
-			s:       orm.NewSelector[test.SimpleStruct](s.db).Where(orm.C("Id").Eq(17)),
-			wantRes: test.NewSimpleStruct(17),
+			s:       orm.NewSelector[test.SimpleStruct](s.db).Where(orm.C("Id").Eq(102)),
+			wantRes: test.NewSimpleStruct(102),
 		},
 		{
 			name:    "no row",

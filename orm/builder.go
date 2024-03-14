@@ -37,7 +37,7 @@ func (s *builder) buildExpression(expr Expression) error {
 		if err := s.buildExpression(exp.left); err != nil {
 			return err
 		}
-		//s.sb.WriteByte(' ')
+		//r.sb.WriteByte(' ')
 		if exp.op.String() != "" {
 			s.sb.WriteString(exp.op.String())
 			s.sb.WriteByte(' ')

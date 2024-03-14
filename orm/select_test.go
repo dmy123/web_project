@@ -18,7 +18,7 @@ func TestSelector_Build(t *testing.T) {
 	//require.NoError(t, err)
 	//type testCase[T any] struct {
 	//	name    string
-	//	s       Selector[T]
+	//	r       Selector[T]
 	//	want    *Query
 	//	wantErr bool
 	//}
@@ -143,7 +143,7 @@ func TestSelector_Build(t *testing.T) {
 				return
 			}
 			assert.Equal(t, tt.wantQuery, q)
-			//got, err := tt.s.Build()
+			//got, err := tt.r.Build()
 			//if (err != nil) != tt.wantErr {
 			//	t.Errorf("Build() error = %v, wantErr %v", err, tt.wantErr)
 			//	return
@@ -210,7 +210,7 @@ func TestSelector_Get(t *testing.T) {
 		// TODO: Add test cases.
 		//{
 		//	name:    "invalid query",
-		//	s:       NewSelector[TestModel](db).Where(C("XXX").Eq(1)),
+		//	r:       NewSelector[TestModel](db).Where(C("XXX").Eq(1)),
 		//	wantErr: errs.NewErrUnknownField("XXX"),
 		//},
 		{
@@ -238,7 +238,7 @@ func TestSelector_Get(t *testing.T) {
 		},
 		//{
 		//	name:    "scan err",
-		//	s:       NewSelector[TestModel](db).Where(C("Id").Lt(1)),
+		//	r:       NewSelector[TestModel](db).Where(C("Id").Lt(1)),
 		//	wantErr: errs.ErrNoRows,
 		//},
 	}
@@ -269,7 +269,7 @@ func TestSelector_Select(t *testing.T) {
 	tests := []testCase{
 		//{
 		//	name: "multiple columns",
-		//	s:    NewSelector[TestModel](db).Select("first_name", "last_name"),
+		//	r:    NewSelector[TestModel](db).Select("first_name", "last_name"),
 		//	want: &Query{
 		//		SQL: "SELECT `first_name`, `last_name` FROM `test_model`;",
 		//	},
