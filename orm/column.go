@@ -52,10 +52,10 @@ func valueOf(arg any) Expression {
 
 func (c Column) expr() {
 	//TODO implement me
-	panic("implement me")
+
 }
 
 func (c Column) selectable() {
 	//TODO implement me
-	panic("implement me")
+
 }

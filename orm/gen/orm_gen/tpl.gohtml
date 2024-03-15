@@ -1,0 +1,8 @@
+package {{ .Package}}
+
+import (
+    "gitee.com/geektime-geekbang/geektime-go/orm"
+    {{range $idx, $import := .Imports}}
+    {{$import}}
+    {{end}}
+)
