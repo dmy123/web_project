@@ -1,4 +1,4 @@
-package cache_api
+package cache
 
 import (
 	"context"
@@ -106,6 +106,18 @@ func (b *BuildInMapCache) Set(ctx context.Context, key string, val any, expirati
 	return nil
 }
 
+func (b *BuildInMapCache) set(ctx context.Context, key string, val any, expiration time.Duration) error {
+	var dl time.Time
+	if expiration > 0 {
+		dl = time.Now().Add(expiration)
+	}
+	b.data[key] = &item{
+		val:      val,
+		deadline: dl,
+	}
+	return nil
+}
+
 func (b *BuildInMapCache) Get(ctx context.Context, key string) (any, error) {
 	b.mutex.RLock()
 	//defer b.mutex.RUnlock()
@@ -135,6 +147,18 @@ func (b *BuildInMapCache) Delete(ctx context.Context, key string) error {
 	//delete(b.data, key)
 	b.delete(key)
 	return nil
+}
+
+func (b *BuildInMapCache) LoadAndDelete(ctx context.Context, key string) (any, error) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	//delete(b.data, key)
+	val, ok := b.data[key]
+	if !ok {
+		return nil, errKeyNotFound
+	}
+	b.delete(key)
+	return val.val, nil
 }
 
 func (b *BuildInMapCache) delete(key string) {

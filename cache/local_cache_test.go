@@ -1,4 +1,4 @@
-package cache_api
+package cache
 
 import (
 	"context"
