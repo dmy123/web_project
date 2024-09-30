@@ -9,17 +9,17 @@ import (
 )
 
 type Pool struct {
-	idlesConns  chan *idleConn
-	reqQueue    []connReq
-	maxCnt      int
-	cnt         int
+	idleConns   chan *idleConn // 空闲连接
+	reqConn     []connReq      // 请求队列
+	maxCnts     int
+	cnts        int
 	maxIdleTime time.Duration
 	factory     func() (net.Conn, error)
 	lock        sync.Mutex
 }
 
 type idleConn struct {
-	c              net.Conn
+	conn           net.Conn
 	lastActiveTime time.Time
 }
 
@@ -27,7 +27,7 @@ type connReq struct {
 	connChan chan net.Conn
 }
 
-func NewPool(initCnt int, maxIdleCnt int, maxCnt int, maxIdleTime time.Duration, factory func() (net.Conn, error)) (*Pool, error) {
+func NewPool(initCnt, maxIdleCnt, maxCnts int, maxIdleTime time.Duration, factory func() (net.Conn, error)) (*Pool, error) {
 	if initCnt > maxIdleCnt {
 		return nil, fmt.Errorf("init count %d exceeds max idle count %d", initCnt, maxIdleCnt)
 	}
@@ -37,16 +37,15 @@ func NewPool(initCnt int, maxIdleCnt int, maxCnt int, maxIdleTime time.Duration,
 		if err != nil {
 			return nil, err
 		}
-		idlesConns <- &idleConn{c: conn, lastActiveTime: time.Now()}
+		idlesConns <- &idleConn{conn: conn, lastActiveTime: time.Now()}
 	}
-	res := &Pool{
-		idlesConns:  idlesConns,
-		maxCnt:      maxCnt,
-		cnt:         0,
+	return &Pool{
+		idleConns:   idlesConns,
+		maxCnts:     maxCnts,
+		cnts:        0,
 		maxIdleTime: maxIdleTime,
 		factory:     factory,
-	}
-	return res, nil
+	}, nil
 }
 
 func (p *Pool) Get(ctx context.Context) (net.Conn, error) {
@@ -59,25 +58,21 @@ func (p *Pool) Get(ctx context.Context) (net.Conn, error) {
 
 	for {
 		select {
-		case ic := <-p.idlesConns:
-			// todo 判断是否超时
+		case ic := <-p.idleConns:
 			if ic.lastActiveTime.Add(p.maxIdleTime).Before(time.Now()) {
-				_ = ic.c.Close()
+				_ = ic.conn.Close()
 				continue
 			}
-			return ic.c, nil
+			return ic.conn, nil
 		default:
 			p.lock.Lock()
-			// todo 阻塞
-			if p.cnt >= p.maxCnt {
+			if p.cnts >= p.maxCnts {
 				req := connReq{connChan: make(chan net.Conn, 1)}
-				p.reqQueue = append(p.reqQueue, req)
+				p.reqConn = append(p.reqConn, req)
 				p.lock.Unlock()
 				select {
 				case <-ctx.Done():
 					go func() {
-						// 处理一：删除
-						// 处理二：转发
 						c := <-req.connChan
 						_ = p.Put(ctx, c)
 					}()
@@ -90,7 +85,7 @@ func (p *Pool) Get(ctx context.Context) (net.Conn, error) {
 			if err != nil {
 				return nil, err
 			}
-			p.cnt++
+			p.cnts++
 			p.lock.Unlock()
 			return c, nil
 		}
@@ -99,24 +94,21 @@ func (p *Pool) Get(ctx context.Context) (net.Conn, error) {
 
 func (p *Pool) Put(ctx context.Context, c net.Conn) error {
 	p.lock.Lock()
-	if len(p.reqQueue) > 0 {
-		req := p.reqQueue[0]
-		p.reqQueue = p.reqQueue[1:]
+	if len(p.reqConn) > 0 {
+		req := p.reqConn[0]
+		p.reqConn = p.reqConn[1:]
 		p.lock.Unlock()
 		req.connChan <- c
 		return nil
 	}
 	defer p.lock.Unlock()
-	ic := &idleConn{
-		c:              c,
-		lastActiveTime: time.Now(),
-	}
+	ic := &idleConn{conn: c, lastActiveTime: time.Now()}
 	select {
-	case p.idlesConns <- ic:
+	case p.idleConns <- ic:
 	default:
 		_ = c.Close()
-		p.cnt--
-	}
+		p.cnts--
 
+	}
 	return nil
 }
