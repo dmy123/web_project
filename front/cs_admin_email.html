@@ -1,0 +1,567 @@
+
+<html>
+<head>
+			<link rel="stylesheet" href="/vuetify/assets/index.css" async>
+			<script src='/assets/vue.js'></script>
+			<style>
+				[v-cloak] {
+					display: none;
+				}
+				.vx-list-item--active {
+					position: relative;
+				}
+				.vx-list-item--active:after {
+					opacity: .12;
+					background-color: currentColor;
+					bottom: 0;
+					content: "";
+					left: 0;
+					pointer-events: none;
+					position: absolute;
+					right: 0;
+					top: 0;
+					transition: .3s cubic-bezier(.25,.8,.5,1);
+					line-height: 0;
+				}
+				.vx-list-item--active:hover {
+					background-color: inherit!important;
+				}
+			</style>
+		
+<title>【送信専用】ご注文確認★なんでも酒やカクヤス - CS管理ツール</title>
+
+<meta charset='utf8'>
+
+<meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
+</head>
+
+<body class='front'>
+<div id='app' v-cloak>
+<div>
+<v-progress-linear :active='vars.globalProgressBar.show' :model-value='vars.globalProgressBar.value' style='position: fixed; z-index: 2000;' :height='2' color='amber'></v-progress-linear>
+
+<v-locale-provider locale='ja' fallback-locale='en'>
+<v-card id='vt-app' :elevation='0' v-assign='[vars, {presetsRightDrawer: false, presetsDialog: false, presetsListingDialog: false, 
+navDrawer: true,presetsDataChanged:{}
+}]' class='k-theme'>
+<v-progress-linear :active='vars.globalProgressBar.show' :model-value='vars.globalProgressBar.value' style='position: fixed; z-index: 2000;' :height='2' color='amber'></v-progress-linear>
+
+<template v-if='vars.presetsMessage'>
+<v-snackbar v-model='vars.presetsMessage.show' :color='vars.presetsMessage.color' style='bottom: 48px;' :timeout='2000' :location='"bottom"'>{{vars.presetsMessage.message}}</v-snackbar>
+</template>
+
+<v-layout>
+<go-plaid-portal :visible='true' :form='form' :locals='locals' portal-name='presets_RightDrawerPortalName'></go-plaid-portal>
+
+<go-plaid-portal :visible='true' :form='form' :locals='locals' portal-name='presets_DialogPortalName'></go-plaid-portal>
+
+<go-plaid-portal :visible='true' :form='form' :locals='locals' portal-name='deleteConfirm'></go-plaid-portal>
+
+<go-plaid-portal :visible='true' :form='form' :locals='locals' portal-name='presets_confirmDialogPortalName'></go-plaid-portal>
+
+<go-plaid-portal :visible='true' :form='form' :locals='locals' portal-name='presets_listingDialogPortalName'></go-plaid-portal>
+
+<v-navigation-drawer :width='274' v-model='vars.navDrawer' :permanent='true' :floating='true' :elevation='0'>
+<v-layout style='height: calc(100% - 16px);' class='ma-2 border-sm rounded elevation-0'>
+<v-main class='menu-wrap'>
+<v-container>
+<v-row align='center' justify='center'>
+<v-col :cols='7'>
+<h1 class='text-h6'>CS管理ツール</h1>
+</v-col>
+
+<v-col :cols='3' class='text-right'>
+<v-menu>
+<template v-slot:activator='{isActive, props}'>
+<div v-bind='props' style='display: inline-block;'>
+<v-btn variant='text' class='i18n-switcher-btn'><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_2_4948)">
+<mask id="mask0_2_4948" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+<rect width="24" height="24" fill="white"/>
+</mask>
+<g mask="url(#mask0_2_4948)">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M0 0V24H24V0H0Z" fill="#2E42A5"/>
+<mask id="mask1_2_4948" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M0 0V24H24V0H0Z" fill="white"/>
+</mask>
+<g mask="url(#mask1_2_4948)">
+<mask id="mask2_2_4948" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+<rect width="24" height="24" fill="white"/>
+</mask>
+<g mask="url(#mask2_2_4948)">
+<path d="M-2.67236 22.2854L2.6089 25.2635L24.1198 3.23787L26.9056 -1.18761L21.258 -2.18297L12.4842 7.3085L5.42223 13.7035L-2.67236 22.2854Z" fill="white"/>
+<path d="M-1.94934 24.3719L0.741221 26.1001L25.9052 -1.59881H22.1274L-1.94934 24.3719Z" fill="#F50100"/>
+<path d="M26.6724 22.2854L21.3911 25.2635L-0.119832 3.23787L-2.90558 -1.18761L2.74197 -2.18297L11.5158 7.3085L18.5778 13.7035L26.6724 22.2854Z" fill="white"/>
+<path d="M26.4922 23.7829L23.8016 25.5111L13.0865 13.6518L9.90973 12.3267L-3.1736 -1.17246H0.604259L13.6802 12.0063L17.1535 13.5952L26.4922 23.7829Z" fill="#F50100"/>
+<mask id="path-10-inside-1_2_4948" fill="white">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M14.8333 -2H9.16665V8H-1.47937V16H9.16665V26H14.8333V16H25.5206V8H14.8333V-2Z"/>
+</mask>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M14.8333 -2H9.16665V8H-1.47937V16H9.16665V26H14.8333V16H25.5206V8H14.8333V-2Z" fill="#F50100"/>
+<path d="M9.16665 -2V-4H7.16665V-2H9.16665ZM14.8333 -2H16.8333V-4H14.8333V-2ZM9.16665 8V10H11.1666V8H9.16665ZM-1.47937 8V6H-3.47937V8H-1.47937ZM-1.47937 16H-3.47937V18H-1.47937V16ZM9.16665 16H11.1666V14H9.16665V16ZM9.16665 26H7.16665V28H9.16665V26ZM14.8333 26V28H16.8333V26H14.8333ZM14.8333 16V14H12.8333V16H14.8333ZM25.5206 16V18H27.5206V16H25.5206ZM25.5206 8H27.5206V6H25.5206V8ZM14.8333 8H12.8333V10H14.8333V8ZM9.16665 0H14.8333V-4H9.16665V0ZM11.1666 8V-2H7.16665V8H11.1666ZM-1.47937 10H9.16665V6H-1.47937V10ZM0.52063 16V8H-3.47937V16H0.52063ZM9.16665 14H-1.47937V18H9.16665V14ZM11.1666 26V16H7.16665V26H11.1666ZM14.8333 24H9.16665V28H14.8333V24ZM12.8333 16V26H16.8333V16H12.8333ZM25.5206 14H14.8333V18H25.5206V14ZM23.5206 8V16H27.5206V8H23.5206ZM14.8333 10H25.5206V6H14.8333V10ZM12.8333 -2V8H16.8333V-2H12.8333Z" fill="white" mask="url(#path-10-inside-1_2_4948)"/>
+</g>
+</g>
+</g>
+</g>
+<rect width="24" height="24" rx="12" fill="url(#paint0_radial_2_4948)" style="mix-blend-mode:overlay"/>
+<rect width="24" height="24" rx="12" fill="url(#paint1_linear_2_4948)" style="mix-blend-mode:overlay"/>
+<rect x="0.5" y="0.5" width="23" height="23" rx="11.5" stroke="black" stroke-opacity="0.1"/>
+<defs>
+<radialGradient id="paint0_radial_2_4948" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(12 3.5) rotate(90) scale(27.5 25.795)">
+<stop stop-color="white" stop-opacity="0.3"/>
+<stop offset="0.289252" stop-opacity="0.24"/>
+<stop offset="0.46298" stop-opacity="0.55"/>
+<stop offset="0.605698" stop-color="white" stop-opacity="0.26"/>
+<stop offset="0.726705" stop-opacity="0.17"/>
+<stop offset="1" stop-color="white" stop-opacity="0.3"/>
+</radialGradient>
+<linearGradient id="paint1_linear_2_4948" x1="12" y1="0" x2="12" y2="24" gradientUnits="userSpaceOnUse">
+<stop stop-color="white" stop-opacity="0.7"/>
+<stop offset="1" stop-opacity="0.3"/>
+</linearGradient>
+<clipPath id="clip0_2_4948">
+<rect width="24" height="24" rx="12" fill="white"/>
+</clipPath>
+</defs>
+</svg>
+</v-btn>
+</div>
+</template>
+
+<v-list :density='"compact"'>
+<div>
+<v-list-item @click='plaid().vars(vars).locals(locals).form(form).mergeQuery(true).query("lang", "ja").go()'>
+<v-list-item-title>
+<div>日本語</div>
+</v-list-item-title>
+</v-list-item>
+</div>
+
+<div>
+<v-list-item @click='plaid().vars(vars).locals(locals).form(form).mergeQuery(true).query("lang", "en").go()'>
+<v-list-item-title>
+<div>English</div>
+</v-list-item-title>
+</v-list-item>
+</div>
+</v-list>
+</v-menu>
+</v-col>
+
+<v-divider vertical class='i18n-divider'></v-divider>
+
+<v-col :cols='2' class='position-relative'>
+<v-app-bar-nav-icon icon='mdi-menu' @click='vars.navDrawer = !vars.navDrawer' :density='"compact"' class='text-grey-darken-1 menu-control-icon'></v-app-bar-nav-icon>
+</v-col>
+</v-row>
+</v-container>
+
+<v-card :variant='"text"' class='menu-content mt-2 mb-4 ml-4 pr-4'>
+<div>
+<go-plaid-scope v-slot='{ locals }' :init='[{ menuOpened:  [""]}, { selection:  ["Outgoing Email"]}]'>
+<v-list :open-strategy='"single"' :density='"compact"' v-model:opened='locals.menuOpened' v-model:selected='locals.selection' color='transparent' class='primary--text'>
+<v-list-item :rounded='true' :value='"Customers"' href='/customers' @click='(e) => {
+	if (e.metaKey || e.ctrlKey) { return; }
+	e.stopPropagation();
+	e.preventDefault();
+	plaid().vars(vars).locals(locals).form(form).pushStateURL("/customers").go();
+}
+'>
+<template v-slot:prepend>
+<v-icon :icon='"mdi-account"'></v-icon>
+</template>
+
+<v-list-item-title>顧客情報</v-list-item-title>
+</v-list-item>
+
+<v-list-item :rounded='true' :value='"Orders"' href='/orders' @click='(e) => {
+	if (e.metaKey || e.ctrlKey) { return; }
+	e.stopPropagation();
+	e.preventDefault();
+	plaid().vars(vars).locals(locals).form(form).pushStateURL("/orders").go();
+}
+'>
+<template v-slot:prepend>
+<v-icon :icon='"mdi-cart"'></v-icon>
+</template>
+
+<v-list-item-title>注文情報</v-list-item-title>
+</v-list-item>
+
+<v-list-item :rounded='true' :value='"UserCoupons"' href='/coupons' @click='(e) => {
+	if (e.metaKey || e.ctrlKey) { return; }
+	e.stopPropagation();
+	e.preventDefault();
+	plaid().vars(vars).locals(locals).form(form).pushStateURL("/coupons").go();
+}
+'>
+<template v-slot:prepend>
+<v-icon :icon='"mdi-cash-multiple"'></v-icon>
+</template>
+
+<v-list-item-title>クーポン</v-list-item-title>
+</v-list-item>
+
+<v-list-item :rounded='true' :value='"Outgoing Email"' href='/outgoing_emails' @click='(e) => {
+	if (e.metaKey || e.ctrlKey) { return; }
+	e.stopPropagation();
+	e.preventDefault();
+	plaid().vars(vars).locals(locals).form(form).pushStateURL("/outgoing_emails").go();
+}
+'>
+<template v-slot:prepend>
+<v-icon :icon='"mdi-email-outline"'></v-icon>
+</template>
+
+<v-list-item-title>メール管理</v-list-item-title>
+</v-list-item>
+
+<v-list-item :rounded='true' :value='"Users"' href='/users' @click='(e) => {
+	if (e.metaKey || e.ctrlKey) { return; }
+	e.stopPropagation();
+	e.preventDefault();
+	plaid().vars(vars).locals(locals).form(form).pushStateURL("/users").go();
+}
+'>
+<template v-slot:prepend>
+<v-icon :icon='"mdi-account-cog"'></v-icon>
+</template>
+
+<v-list-item-title>スタッフリスト</v-list-item-title>
+</v-list-item>
+</v-list>
+</go-plaid-scope>
+</div>
+</v-card>
+</v-main>
+
+<v-app-bar :location='"bottom"' :elevation='0' class='border-t-sm border-b-0'>
+<div class='w-100'>
+<go-plaid-portal :visible='true' :form='form' :locals='locals' portal-name='ProfileCompo:'>
+<go-plaid-scope v-slot='{ locals }' :init='{
+	__queryEncoder_bare__: ({ value, queries, tag }) => {
+		if (value) {
+			value.split(&#39;&&#39;).forEach((query) => {
+				queries.push(query)
+			})
+		}
+	},
+
+	newAction: function() {
+		return {
+  "compo_type": "*login.ProfileCompo",
+  "compo": {
+    "id": ""
+  },
+  "injector": "__profile__",
+  "sync_query": false,
+  "method": "",
+  "request": {}
+};
+	},
+	queryTags: function(v) {
+		let tags = [] || [];
+		tags.forEach(tag => {
+			if (tag.method) {
+				tag.encoder = this["__queryEncoder_" + tag.method + "__"];
+			}
+		});
+		return tags;
+	},
+	setCookies: function(v) {}, // a placeholder
+	encodeQuery: function(v) {
+		if (!v.sync_query) {
+			return "";
+		}
+		return plaid().encodeObjectToQuery(v.compo, this.queryTags());
+	},
+}'>
+<div v-on-mounted='({el}) => {
+	const cookieTags = locals.queryTags().filter(tag => tag.cookie)
+	locals.setCookies = function(v) {
+		if (!v.sync_query || !el.ownerDocument) {
+			return;
+		}
+		el.ownerDocument.cookie = "__sync_cookie_defc04c7__=" + plaid().encodeObjectToQuery(v.compo, cookieTags);
+	}
+}'></div>
+
+<go-plaid-scope v-slot='{ locals: xlocals }' :init='{ userCardVisible: false }'>
+<div @click='xlocals.userCardVisible = !xlocals.userCardVisible' class='d-flex align-center ga-2 pa-3'>
+<go-plaid-listener @presets-notif-models-updateduser-csadmin-user='(payload) => { plaid().vars(vars).locals(locals).form(form).method("POST").eventFunc("__dispatch_stateful_action__").queries({}).url("/outgoing_emails/16").run(function(b){
+	let v = locals.newAction(); // *login.ProfileCompo
+	v.method = "OnReload";
+	v.request = {};
+
+	b.__action__ = v;
+	b.__stringQuery__ = locals.encodeQuery(v);
+	locals.setCookies(v);
+}).stringQuery((b) => b.__stringQuery__).pushState((b) => b.__action__.sync_query).beforeFetch(({b, url, opts}) => {
+		opts.body.set("__action__", JSON.stringify(b.__action__, null, "\t")); 
+		return [url, opts];
+	}).go() }'></go-plaid-listener>
+
+<v-avatar :size='"large"' :density='"compact"' :rounded='true' text='A' class='text-body-1 font-weight-medium text-primary bg-primary-lighten-2'></v-avatar>
+
+<div class='d-flex flex-column flex-1-1' style='max-width: 184px;'>
+<div class='d-flex align-center ga-2 pt-1'>
+<div v-pre class='flex-1-1 text-subtitle-2 text-secondary text-truncate'>admin@theplant.jp</div>
+
+<v-menu :close-on-content-click='false' v-model='xlocals.userCardVisible'>
+<template v-slot:activator='{props}'>
+<v-btn v-bind='props' :size='16' :icon='true' :density='"compact"' :variant='"text"'>
+<v-icon :icon='"mdi-chevron-right"' :size='16'></v-icon>
+</v-btn>
+</template>
+
+<v-card :width='300'>
+<v-card-text class='pa-0'>
+<div class='d-flex align-center ga-6 pa-6 bg-grey-lighten-4'>
+<v-avatar :size='80' :density='"compact"' text='A' class='text-h3 font-weight-medium text-primary bg-primary-lighten-2 rounded-lg'></v-avatar>
+
+<div class='flex-1-1 d-flex flex-column ga-4' style='max-width:148px;'>
+<div class='d-flex flex-column'>
+<go-plaid-scope v-slot='{ locals: xlocals }' :init='{editShow:false, name: "admin@theplant.jp"}'>
+<div v-if='!xlocals.editShow' class='d-flex align-center ga-2'>
+<div v-pre class='text-subtitle-1 font-weight-medium text-truncate'>admin@theplant.jp</div>
+
+<v-btn :size='20' :variant='"text"' color='grey-darken-1' @click='xlocals.editShow = true; xlocals.name = "admin@theplant.jp"'>
+<v-icon :icon='"mdi-pencil-outline"'></v-icon>
+</v-btn>
+</div>
+
+<div v-else class='d-flex align-center ga-2' style='height:24px;'>
+<v-text-field :hide-details='true' :density='"compact"' :autofocus='true' color='primary' :variant='"plain"' v-model='xlocals.name' @keyup.enter='plaid().vars(vars).locals(locals).form(form).method("POST").eventFunc("__dispatch_stateful_action__").queries({}).url("/outgoing_emails/16").run(function(b){
+	let v = locals.newAction(); // *login.ProfileCompo
+	v.method = "Rename";
+	v.request = {
+  "name": ""
+};
+v.request.name = xlocals.name
+
+	b.__action__ = v;
+	b.__stringQuery__ = locals.encodeQuery(v);
+	locals.setCookies(v);
+}).stringQuery((b) => b.__stringQuery__).pushState((b) => b.__action__.sync_query).beforeFetch(({b, url, opts}) => {
+		opts.body.set("__action__", JSON.stringify(b.__action__, null, "\t")); 
+		return [url, opts];
+	}).go()' class='text-subtitle-1 font-weight-medium mt-n2'></v-text-field>
+
+<div class='d-flex align-center ga-1'>
+<v-btn :size='20' :variant='"text"' color='grey-darken-1' @click='xlocals.editShow = false'>
+<v-icon :icon='"mdi-close"'></v-icon>
+</v-btn>
+
+<v-btn :size='20' :variant='"text"' color='grey-darken-1' @click='plaid().vars(vars).locals(locals).form(form).method("POST").eventFunc("__dispatch_stateful_action__").queries({}).url("/outgoing_emails/16").run(function(b){
+	let v = locals.newAction(); // *login.ProfileCompo
+	v.method = "Rename";
+	v.request = {
+  "name": ""
+};
+v.request.name = xlocals.name
+
+	b.__action__ = v;
+	b.__stringQuery__ = locals.encodeQuery(v);
+	locals.setCookies(v);
+}).stringQuery((b) => b.__stringQuery__).pushState((b) => b.__action__.sync_query).beforeFetch(({b, url, opts}) => {
+		opts.body.set("__action__", JSON.stringify(b.__action__, null, "\t")); 
+		return [url, opts];
+	}).go()'>
+<v-icon :icon='"mdi-check"'></v-icon>
+</v-btn>
+</div>
+</div>
+</go-plaid-scope>
+
+<div class='text-subtitle-2 font-weight-medium text-grey-darken-1'>Admin</div>
+</div>
+
+<div style='height:20px;'></div>
+</div>
+</div>
+
+<div class='d-flex flex-column ga-6 pa-6'>
+<div class='d-flex flex-column ga-2'>
+<div v-pre class='text-body-2 text-grey-darken-2'>メールアドレス</div>
+
+<div v-pre class='text-subtitle-2 font-weight-medium text-grey-darken-4'>admin@theplant.jp</div>
+</div>
+
+<div class='d-flex flex-column ga-2'>
+<div v-pre class='text-body-2 text-grey-darken-2'>会社</div>
+
+<div v-pre class='text-subtitle-2 font-weight-medium text-grey-darken-4'></div>
+</div>
+
+<div class='d-flex flex-column ga-2'>
+<v-btn :variant='"tonal"' color='secondary' @click='plaid().vars(vars).locals(locals).form(form).method("POST").eventFunc("login_openChangePasswordDialog").go()'>パスワードを変更する</v-btn>
+
+<v-btn :variant='"tonal"' color='error' @click='plaid().vars(vars).locals(locals).form(form).url("/auth/logout").go()'>ログアウト</v-btn>
+</div>
+</div>
+</v-card-text>
+</v-card>
+</v-menu>
+</div>
+
+<div class='text-overline text-grey-darken-1 text-truncate'>Admin</div>
+</div>
+</div>
+</go-plaid-scope>
+</go-plaid-scope>
+</go-plaid-portal>
+</div>
+</v-app-bar>
+</v-layout>
+</v-navigation-drawer>
+
+<v-main style='height:100vh; padding-left: calc(var(--v-layout-left) + 16px); --v-layout-right: 16px' class='overflow-y-auto main-container'>
+<v-app-bar :elevation='0' height='100'>
+<div class='d-flex align-center mx-6 border-b w-100' style='padding-bottom:24px;'>
+<v-app-bar-nav-icon :density='"compact"' v-if='!vars.navDrawer' v-on:click.stop='vars.navDrawer = !vars.navDrawer' class='mr-2'></v-app-bar-nav-icon>
+
+<div class='d-flex align-center w-100'>
+<v-toolbar-title>メール情報</v-toolbar-title>
+
+<v-spacer></v-spacer>
+
+<v-btn :variant='"flat"' color='primary' @click='plaid().vars(vars).locals(locals).form(form).eventFunc("presets_ConfirmDialog").query("presets_ConfirmDialog_ConfirmEvent", "plaid().vars(vars).locals(locals).form(form).eventFunc(\"resend_email\").query(\"id\", \"16\").go()").query("presets_ConfirmDialog_PromptText", "メールを再送します。よろしいですか。").query("presets_ConfirmDialog_OKText", "再送する").go()'>メールを再送する</v-btn>
+</div>
+</div>
+</v-app-bar>
+
+<v-container :fluid='true' class='px-0 pt-0 detailing-page-wrap'>
+<div class='d-flex flex-column ga-10 layout-center'>
+<go-plaid-scope v-slot='{form}'>
+<div class='detailing-title-wrap'>
+<v-btn :size='"x-small"' :icon='"mdi-arrow-left"' :tile='true' :variant='"outlined"' @click='
+					const last = vars.__history.last();
+					if (last && last.url && last.url.startsWith("/outgoing_emails")) {
+						$event.view.window.history.back();
+						return;
+					}
+					plaid().vars(vars).locals(locals).form(form).method("GET").url("/outgoing_emails").pushState(true).go()'></v-btn>
+
+<h3 class='detailing-title'>送信済みメール詳細</h3>
+</div>
+
+<div class='section-wrap'>
+<div class='section-title-wrap'></div>
+
+<div class='section-body border-b'>
+<v-card :variant='"flat"' class='mx-0 mt-1 mb-4 px-4 pb-0 pt-4 section-body'>
+<v-row :no-gutters='true'>
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>店舗</label>
+
+<div class='pt-1'></div>
+</div>
+</v-col>
+</v-row>
+
+<v-row :no-gutters='true'>
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>送信ステータス</label>
+
+<div class='pt-1'>成功</div>
+</div>
+</v-col>
+
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>送信担当者</label>
+
+<div class='pt-1'></div>
+</div>
+</v-col>
+</v-row>
+
+<v-row :no-gutters='true'>
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>送信元メールアドレス</label>
+
+<div class='pt-1'>email service address</div>
+</div>
+</v-col>
+
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>送信者名</label>
+
+<div class='pt-1'>なんでも酒やカクヤス</div>
+</div>
+</v-col>
+</v-row>
+
+<v-row :no-gutters='true'>
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>送信先メールアドレス</label>
+
+<div class='pt-1'></div>
+</div>
+</v-col>
+
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>お名前</label>
+
+<div class='pt-1'>姓氏名字</div>
+</div>
+</v-col>
+</v-row>
+
+<v-row :no-gutters='true'>
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>送信日時</label>
+
+<div class='pt-1'>2024/09/03 17:33</div>
+</div>
+</v-col>
+</v-row>
+
+<v-row :no-gutters='true'>
+<v-col class='pr-4'>
+<div class='mb-4'>
+<label class='v-label theme--light text-caption'>メール表題</label>
+
+<div class='pt-1'>【送信専用】ご注文確認★なんでも酒やカクヤス</div>
+</div>
+</v-col>
+</v-row>
+</v-card>
+</div>
+</div>
+
+<div class='section-wrap'>
+<div class='section-title-wrap'>
+<h2 class='section-title'>メール内容</h2>
+</div>
+
+<div class='section-body'>
+<v-card :variant='"flat"' class='mx-0 mt-1 mb-4 px-4 pb-0 pt-4 section-body'>
+<v-card-item>
+<div>※本メールは送信専用です。このままご返信いただいてもお答えできませんのでご了承ください。<br><br>─────────────────<br><br>姓氏 名字 様<br><br>なんでも酒やカクヤスをご利用いただきありがとうございます。<br>次の通りご注文を承りました。<br>内容のご確認をお願いします。<br><br>ご依頼主：姓氏 名字（せいし めいじ）様<br>総合計：1,111円<br><br>■ご注文内容<br>ご注文番号：24071901576437<br>ご注文日時：2024/07/07 20:12:38<br>お届け先郵便番号：〒123-4567<br>お届け先住所：2-1<br>受取人会社名：receive company<br>お届け先お名前：山田　太郎様様<br>お届け日：2024/07/10<br>配送時間：22時－22時にお届け！※90分前までの受取りOK<br><br>商品情報<br><br>商品名称 ： サントリー ブレンディ 微糖 950ml<br>購入商品数 ： 1本<br>価格：121円<br><br>商品名称 ： Kprice 810(ハチイチマル) ウイスキー 700ml 700ML<br>購入商品数 ： 3ケース<br>価格：1,738円<br><br>商品名称 ： 〔冷凍〕ハーゲンダッツ ミニカップ ストロベリー 110ml※カクヤス店舗からのお届け限定 110ML(軽減税率対象)<br>購入商品数 ： 2個<br>価格：311円<br><br><br>お届け方法：配達<br>お支払い方法：代金引換（ギフト券のご利用含む）<br>お支払い回数：3回払い<br>領収書：希望する ※領収書はお届け時に発行いたします。<br>領収書宛名：test_receipt_address<br>連絡先：010-1234-5678<br>空き瓶回収：あり<br>置き配：宅配BOX<br>置き配：玄関前<br>金額印字：希望する<br>包装希望：希望する<br>のし種類名前：test_nosi_type_nm<br>内のし・外のし：内のし<br>のし名いれ1：test_nosi_naire1<br>のし名いれ2：test_nosi_naire2<br>のし名いれ3：test_nosi_naire3<br>のし名いれ4：test_nosi_naire4<br>二本縛り：希望する<br><br>送料：無料<br>クーポン値引（税込）：-7円<br>合計：1,110円<br>(10%対象)：1,000円<br>(8%対象)：100円<br>(非課税)：10円<br><br><br><br>─────────────────<br>●佐川急便によるお届け時間指定は、個人宅以外のお届け先（宿泊施設・公共施設・企業等）では承れません。<br>※お届け日時については、余裕をもってのご指定をお願いします。<br>（お届け時間をご指定いただいても、お届けを確約するものではございません）<br><br>●ご注文の確認はこちら<br>https://www.kakuyasu.co.jp/store/app/mypage/order_history/<br>※欠品、数量不足等の理由でご指定日にお届けできない場合は、別途ご連絡をさせていただきます。<br><br>●ご注文のキャンセル・内容に関するお問合せはこちら<br>https://www.kakuyasu.co.jp/store/app/customer/inquiry/<br>※ご本人確認をさせていただく関係から、メールのみの受付とさせていただきます。<br><br>●宅配便お届けに関するお問合せ<br>※発送完了のお知らせメールに記載の問合せ番号にてご確認ください。<br><br>●配達状況に関するお問合せはこちら<br>0120-898-280 [受付時間　9：00-21：00（年中無休）]<br>※現在、カクヤスネットショッピングお問合せセンターでは、新型コロナウイルス感染拡大防止の為、<br>誠に勝手ながら出勤スタッフの時差出勤や時短勤務等の対策を行っております。<br><br>その為、お電話でのお問合せについては繋がりにくい場合がございます。<br>お問合せフォームよりメールでのお問合せも受け付けておりますので、ご利用ください。<br>お客様にはご不便をお掛け致しますが、ご理解いただきますようお願い申し上げます。<br><br><br><br>このメールにお心当たりのない場合、ご不明な点がございましたら、お手数ですが下記よりお問い合わせください。<br><br>【お問い合わせ】<br>チャットボットでの問い合わせはこちら<br>https://www.kakuyasu.co.jp/store/app/customer/inquiry_top/<br><br>なんでも酒や　カクヤス<br>ネットショッピング お問合せセンター<br>webmaster@kakuyasu.co.jp<br><br>ご登録内容の変更、退会はこちら<br>https://www.kakuyasu.co.jp/store/app/mypage/mypage/<br><br><br>20歳未満の飲酒は法律で禁止されています。<br>飲酒運転は絶対にやめましょう！<br><br>────────────────<br>発行元<br>株式会社カクヤス<br>〒114-0003　東京都北区豊島2-3-1<br>https://www.kakuyasu.co.jp<br>────────────────<br><br></div>
+</v-card-item>
+</v-card>
+</div>
+</div>
+</go-plaid-scope>
+</div>
+</v-container>
+</v-main>
+</v-layout>
+</v-card>
+</v-locale-provider>
+</div>
+</div>
+
+			<script src='/assets/main.js'></script>
+			</body>
+
+
+</html>
+

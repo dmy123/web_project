@@ -1,0 +1,82 @@
+.special {
+    color: red;
+    font-size: 50px;
+    width: 50%;
+    background-color: black;
+    border: solid;
+}
+
+p {
+    color: blue;
+    padding: 10px 15px 15px 5px;
+    background: red url(bg-graphic.png) 10px 10px repeat-x fixed;
+}
+
+.outer {
+    border: 5px solid black;
+}
+
+.box {
+    padding: 10px;
+    width: calc(90% - 30px);
+    background-color: rebeccapurple;
+    color: white;
+}
+
+.box2{
+    margin: 30px;
+    width: 100px;
+    height: 100px;
+    background-color: rebeccapurple;
+    /*transform: rotate(0.8turn);*/
+    transform: scaleX(2);
+    background-image: linear-gradient(rgba(0, 0, 255, 0.5), rgba(255, 255, 0, 0.5)),
+    url("assets/dove.png");
+}
+
+body {
+    background-color: pink;
+}
+
+/*@media (min-width: 30em) {*/
+/*    body{*/
+/*        background-color: aquamarine;*/
+/*    }*/
+/*}*/
+
+/*@import "styles.css";*/
+
+/*body {*/
+/*    font:*/
+/*            1em/150% Helvetica,*/
+/*            Arial,*/
+/*            sans-serif;*/
+/*    padding: 1em;*/
+/*    margin: 0 auto;*/
+/*    max-width: 33em;*/
+/*}*/
+
+/*@media (min-width: 70em) {*/
+/*    body {*/
+/*        font-size: 130%;*/
+/*    }*/
+/*}*/
+
+/*h1 {*/
+/*    font-size: 1.5em;*/
+/*}*/
+
+/*div p,*/
+/*#id:first-line {*/
+/*    background-color: red;*/
+/*    border-radius: 3px;*/
+/*}*/
+
+/*div p {*/
+/*    margin: 0;*/
+/*    padding: 1em;*/
+/*}*/
+
+/*div p + p {*/
+/*    padding-top: 0;*/
+/*}*/

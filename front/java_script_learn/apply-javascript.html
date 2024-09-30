@@ -1,0 +1,47 @@
+<html lang="en-US">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Apply JavaScript example</title>
+    <script type="module" src="script.js"></script>
+</head>
+<body>
+<!--<button>Click me</button>-->
+<div>
+
+</div>
+<!--<button id="button_A">Press me</button>-->
+<button>Press me</button>
+<div id="greeting"></div>
+
+<h3 id="heading_A"></h3>
+<script>
+    // const buttonA = document.querySelector("#button_A");
+    // const headingA = document.querySelector("#heading_A");
+    //
+    // let count = 1;
+    //
+    // buttonA.onclick = () => {
+    //     buttonA.textContent = "Try again!";
+    //     headingA.textContent = `${count} clicks so far`;
+    //     count += 1;
+    // };
+    //
+    // const fruits = ["apples", "bananas", "cherries"];
+    // for (const fruit of fruits) {
+    //     console.log(fruit);
+    // }
+
+    const button = document.querySelector("button");
+
+    function greet() {
+        const name = prompt("What is your name?");
+        const greeting = document.querySelector("#greeting");
+        greeting.textContent = `Hello ${name}, nice to see you!`;
+    }
+
+    button.addEventListener("click", greet);
+
+</script>
+</body>
+</html>
