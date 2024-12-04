@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表格项一键复制功能</title>
+    <style>
+        /* 基本表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+            position: relative; /* 为按钮定位 */
+        }
+        /* 一键复制按钮样式 */
+        .copy-btn {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-top: 5px;
+            cursor: pointer;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>表格项一键复制功能</h2>
+<p>点击每个单元格中的“一键复制”按钮复制该单元格内容。</p>
+
+<!-- 表格结构 -->
+<table id="table">
+    <tr>
+        <th>名称</th>
+        <th>年龄</th>
+        <th>城市</th>
+    </tr>
+    <tr>
+        <td>张三</td>
+        <td>25</td>
+        <td>北京</td>
+    </tr>
+    <tr>
+        <td>李四</td>
+        <td>30</td>
+        <td>上海</td>
+    </tr>
+    <tr>
+        <td>王五</td>
+        <td>28</td>
+        <td>广州</td>
+    </tr>
+</table>
+
+<script>
+    const table = document.getElementById("table");
+
+    // 遍历表格中的每个单元格，添加一键复制按钮
+    for (let row of table.rows) {
+        for (let cell of row.cells) {
+            if (cell.cellIndex !== 0) { // 如果不需要在标题中添加按钮，可以跳过
+                addCopyButton(cell);
+            }
+        }
+    }
+
+    // 在单元格中添加一键复制按钮
+    function addCopyButton(cell) {
+        const button = document.createElement("button");
+        button.innerText = "一键复制";
+        button.className = "copy-btn";
+        button.addEventListener("click", () => {
+            copyToClipboard(cell.innerText);
+        });
+        cell.appendChild(button);
+    }
+
+    // 复制内容到剪贴板
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert(`内容 "${text}" 已复制到剪贴板`);
+        }).catch(err => {
+            console.error("复制失败", err);
+        });
+    }
+</script>
+
+</body>
+</html>
