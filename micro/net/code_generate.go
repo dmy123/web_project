@@ -13,7 +13,7 @@ package net
 //	req := &Request{
 //		ServiceName: "UserService",
 //		MethodName:  "GetByID",
-//		Args:        []any{id},
+//		Data:        []any{id},
 //	}
 //	// 接下来就是rpc核心
 //}
@@ -21,5 +21,5 @@ package net
 //type Request struct {
 //	ServiceName string
 //	MethodName  string
-//	Args        []any
+//	Data        []any
 //}

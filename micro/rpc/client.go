@@ -1,10 +1,10 @@
 package rpc
 
 import (
+	"awesomeProject1/micro/rpc/message"
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/silenceper/pool"
 	"net"
 	"reflect"
@@ -51,22 +51,38 @@ func setFuncField(service Service, p Proxy) error {
 				if err != nil {
 					return []reflect.Value{retVal, reflect.ValueOf(err)}
 				}
-				req := &Request{
+				req := &message.Request{
 					ServiceName: service.Name(),
 					MethodName:  fieldTyp.Name,
-					Args:        reqData,
+					Data:        reqData,
 				}
+				req.CalculateHeadLength()
+				req.CalculateBodyLength()
 				resp, err := p.Invoke(ctx, req)
 				if err != nil {
 					return []reflect.Value{retVal, reflect.ValueOf(err)}
 				}
-				err = json.Unmarshal(resp.Data, retVal.Interface())
-				if err != nil {
-					return []reflect.Value{retVal, reflect.ValueOf(err)}
+
+				var retErr error
+				if len(resp.Error) > 0 {
+					retErr = errors.New(string(resp.Error))
 				}
 
-				fmt.Println("resp:", resp)
-				return []reflect.Value{retVal, reflect.Zero(reflect.TypeOf(new(error)).Elem())}
+				if len(resp.Data) > 0 {
+					err = json.Unmarshal(resp.Data, retVal.Interface())
+					if err != nil {
+						return []reflect.Value{retVal, reflect.ValueOf(err)}
+					}
+				}
+
+				var retErrVal reflect.Value
+				if retErr == nil {
+					retErrVal = reflect.Zero(reflect.TypeOf(new(error)).Elem())
+				} else {
+					retErrVal = reflect.ValueOf(retErr)
+				}
+
+				return []reflect.Value{retVal, retErrVal}
 			}
 			fnVal := reflect.MakeFunc(fieldTyp.Type, fn)
 			fieldVal.Set(fnVal)
@@ -106,17 +122,19 @@ func NewClient(addr string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) Invoke(ctx context.Context, req *Request) (*Response, error) {
-	data, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
+func (c *Client) Invoke(ctx context.Context, req *message.Request) (*message.Response, error) {
+	//data, err := json.Marshal(req)
+	//if err != nil {
+	//	return nil, err
+	//}
+	data := message.EncodeReq(req)
 	// 发请求
 	//conn, err := net.DialTimeout("tcp", c.addr, time.Second*3)
-	resp, err := c.Send(data)
-	return &Response{
-		Data: resp,
-	}, nil
+	resp, _ := c.Send(data)
+	//return &message.Response{
+	//	Data: resp,
+	//}, nil
+	return message.DecodeResp(resp), nil
 }
 
 func (c *Client) Send(data []byte) ([]byte, error) {
@@ -129,8 +147,9 @@ func (c *Client) Send(data []byte) ([]byte, error) {
 	defer func() {
 		_ = conn.Close()
 	}()
-	req := EncodeMsg(data)
-	_, err = conn.Write(req)
+	//req := EncodeMsg(data)
+	//_, err = conn.Write(req)
+	_, err = conn.Write(data)
 	if err != nil {
 		return nil, err
 	}

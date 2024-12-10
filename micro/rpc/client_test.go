@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"awesomeProject1/micro/rpc/message"
 	"context"
 	"encoding/json"
 	"errors"
@@ -55,11 +56,11 @@ func Test_setFuncField(t *testing.T) {
 				service: &UserService{},
 				mock: func(ctrl *gomock.Controller) Proxy {
 					p := NewMockProxy(ctrl)
-					p.EXPECT().Invoke(gomock.Any(), &Request{
+					p.EXPECT().Invoke(gomock.Any(), &message.Request{
 						ServiceName: "user-service",
 						MethodName:  "GetByID",
-						Args:        arg,
-					}).Return(&Response{}, nil)
+						Data:        arg,
+					}).Return(&message.Response{}, nil)
 					return p
 				},
 			},

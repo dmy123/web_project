@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"awesomeProject1/micro/rpc/message"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -56,8 +57,9 @@ func (s *Server) handleConn(conn net.Conn) error {
 			return err
 		}
 
-		r := &Request{}
-		err = json.Unmarshal(reqBs, r)
+		//r := &message.Request{}
+		//err = json.Unmarshal(reqBs, r)
+		r := message.DecodeReq(reqBs)
 		if err != nil {
 			return err
 		}
@@ -66,30 +68,42 @@ func (s *Server) handleConn(conn net.Conn) error {
 
 		if err != nil {
 			// 可能是业务error
-			return err
+			resp.Error = []byte(err.Error())
 		}
 
-		res := EncodeMsg(resp.Data)
+		resp.CalculateHeadLength()
+		resp.CalculateBodyLength()
 
-		_, err = conn.Write(res)
+		//res := EncodeMsg(resp.Data)
+		//_, err = conn.Write(res)
+		resp.CalculateHeadLength()
+		resp.CalculateBodyLength()
+		_, err = conn.Write(message.EncodeResp(resp))
 		if err != nil {
 			return err
 		}
 	}
 }
 
-func (s *Server) Invoke(ctx context.Context, r *Request) (*Response, error) {
+func (s *Server) Invoke(ctx context.Context, r *message.Request) (*message.Response, error) {
+	resp := &message.Response{
+		MessageId:  r.MessageId,
+		Version:    r.Version,
+		Compresser: r.Compresser,
+		Serializer: r.Serializer,
+	}
+
 	rs, ok := s.services[r.ServiceName]
 	if !ok {
-		return nil, fmt.Errorf("unknown service: %s", r.ServiceName)
+		return resp, fmt.Errorf("unknown service: %s", r.ServiceName)
 	}
 
-	res, err := rs.invoke(ctx, r.MethodName, r.Args)
+	respData, err := rs.invoke(ctx, r.MethodName, r.Data)
+	resp.Data = respData
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
-
-	return &Response{Data: res}, nil
+	return resp, nil
 }
 
 type reflectionStub struct {
@@ -113,11 +127,18 @@ func (s *reflectionStub) invoke(ctx context.Context, methodName string, data []b
 	//results := val.MethodByName(r.MethodName).Call(in)
 	results := method.Call(in)
 	if results[1].Interface() != nil {
-		return nil, results[1].Interface().(error)
+		err = results[1].Interface().(error)
 	}
-	res, err := json.Marshal(results[0].Interface())
-	if err != nil {
+
+	var res []byte
+	if results[0].IsNil() {
 		return nil, err
+	} else {
+		var er error
+		res, er = json.Marshal(results[0].Interface())
+		if er != nil {
+			return nil, er
+		}
 	}
-	return res, nil
+	return res, err
 }
