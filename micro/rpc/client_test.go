@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"awesomeProject1/micro/rpc/message"
+	json2 "awesomeProject1/micro/rpc/serialize/json"
 	"context"
 	"encoding/json"
 	"errors"
@@ -18,6 +19,7 @@ func Test_setFuncField(t *testing.T) {
 	}
 	arg, err := json.Marshal(&GetByIDReq{Id: 123})
 	assert.NoError(t, err)
+	s := &json2.Serializer{}
 	tests := []struct {
 		name    string
 		args    args
@@ -57,6 +59,9 @@ func Test_setFuncField(t *testing.T) {
 				mock: func(ctrl *gomock.Controller) Proxy {
 					p := NewMockProxy(ctrl)
 					p.EXPECT().Invoke(gomock.Any(), &message.Request{
+						HeadLength:  36,
+						BodyLength:  10,
+						Serializer:  s.Code(),
 						ServiceName: "user-service",
 						MethodName:  "GetByID",
 						Data:        arg,
@@ -70,7 +75,7 @@ func Test_setFuncField(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			err := setFuncField(tt.args.service, tt.args.mock(ctrl))
+			err := setFuncField(tt.args.service, tt.args.mock(ctrl), s)
 			assert.Equal(t, tt.wantErr, err)
 			if err != nil {
 				return

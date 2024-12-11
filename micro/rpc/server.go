@@ -2,28 +2,39 @@ package rpc
 
 import (
 	"awesomeProject1/micro/rpc/message"
+	"awesomeProject1/micro/rpc/serialize"
+	json2 "awesomeProject1/micro/rpc/serialize/json"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
 )
 
 type Server struct {
-	services map[string]reflectionStub
+	services    map[string]reflectionStub
+	serializers map[uint8]serialize.Serializer
+}
+
+func (s *Server) RegisterSerializer(sl serialize.Serializer) {
+	s.serializers[sl.Code()] = sl
 }
 
 func (s *Server) RegisterService(service Service) {
 	s.services[service.Name()] = reflectionStub{
-		s:     service,
-		value: reflect.ValueOf(service),
+		s:           service,
+		value:       reflect.ValueOf(service),
+		serializers: s.serializers,
 	}
 }
 
 func NewServer() *Server {
-	return &Server{
-		services: make(map[string]reflectionStub, 16),
+	server := &Server{
+		services:    make(map[string]reflectionStub, 16),
+		serializers: make(map[uint8]serialize.Serializer, 4),
 	}
+
+	server.RegisterSerializer(&json2.Serializer{})
+	return server
 }
 
 func (s *Server) Start(network, addr string) error {
@@ -98,7 +109,7 @@ func (s *Server) Invoke(ctx context.Context, r *message.Request) (*message.Respo
 		return resp, fmt.Errorf("unknown service: %s", r.ServiceName)
 	}
 
-	respData, err := rs.invoke(ctx, r.MethodName, r.Data)
+	respData, err := rs.invoke(ctx, r)
 	resp.Data = respData
 	if err != nil {
 		return resp, err
@@ -107,19 +118,24 @@ func (s *Server) Invoke(ctx context.Context, r *message.Request) (*message.Respo
 }
 
 type reflectionStub struct {
-	s     Service
-	value reflect.Value
+	s           Service
+	value       reflect.Value
+	serializers map[uint8]serialize.Serializer
 }
 
-func (s *reflectionStub) invoke(ctx context.Context, methodName string, data []byte) ([]byte, error) {
+func (s *reflectionStub) invoke(ctx context.Context, req *message.Request) ([]byte, error) {
 	// 反射找到方法，并执行调用
 	//val := reflect.ValueOf(service)
-	method := s.value.MethodByName(methodName)
+	method := s.value.MethodByName(req.MethodName)
 	in := make([]reflect.Value, 2)
 	// context 如何传？
 	in[0] = reflect.ValueOf(context.Background())
 	inReq := reflect.New(method.Type().In(1).Elem())
-	err := json.Unmarshal(data, inReq.Interface())
+	serializer, ok := s.serializers[req.Serializer]
+	if !ok {
+		return nil, fmt.Errorf("unknown serializer: %q", req.Serializer)
+	}
+	err := serializer.Decode(req.Data, inReq.Interface())
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +151,7 @@ func (s *reflectionStub) invoke(ctx context.Context, methodName string, data []b
 		return nil, err
 	} else {
 		var er error
-		res, er = json.Marshal(results[0].Interface())
+		res, er = serializer.Encode(results[0].Interface())
 		if er != nil {
 			return nil, er
 		}

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"awesomeProject1/micro/proto/gen"
 	"context"
 	"log"
 )
@@ -8,7 +9,8 @@ import (
 type UserService struct {
 	// 用反射来赋值
 	// 类型是函数的字段，它不是方法（它不是定义在 UserService 上的方法）
-	GetByID func(ctx context.Context, req *GetByIDReq) (*GetByIDResp, error)
+	GetByID      func(ctx context.Context, req *GetByIDReq) (*GetByIDResp, error)
+	GetByIdProto func(ctx context.Context, req *gen.GetByIdReq) (*gen.GetByIdResp, error)
 }
 
 func (u UserService) Name() string {
@@ -32,6 +34,16 @@ func (u *UserServiceServer) GetByID(ctx context.Context, req *GetByIDReq) (*GetB
 	log.Println("req:", req)
 	return &GetByIDResp{
 		Msg: u.Msg,
+	}, u.Err
+}
+
+func (u *UserServiceServer) GetByIdProto(ctx context.Context, req *gen.GetByIdReq) (*gen.GetByIdResp, error) {
+	log.Println("req:", req)
+	return &gen.GetByIdResp{
+		User: &gen.User{
+			Id:   0,
+			Name: u.Msg,
+		},
 	}, u.Err
 }
 
