@@ -5,6 +5,7 @@ import (
 	"awesomeProject1/micro/rpc/serialize"
 	json2 "awesomeProject1/micro/rpc/serialize/json"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -75,7 +76,13 @@ func (s *Server) handleConn(conn net.Conn) error {
 			return err
 		}
 
-		resp, err := s.Invoke(context.Background(), r)
+		ctx := context.Background()
+		oneway, ok := r.Meta["one-way"]
+		if ok && oneway == "true" {
+			ctx = CtxWithOneway(ctx)
+		}
+
+		resp, err := s.Invoke(ctx, r)
 
 		if err != nil {
 			// 可能是业务error
@@ -109,7 +116,17 @@ func (s *Server) Invoke(ctx context.Context, r *message.Request) (*message.Respo
 		return resp, fmt.Errorf("unknown service: %s", r.ServiceName)
 	}
 
+	if isOneway(ctx) {
+		go func() {
+			rs.invoke(ctx, r)
+		}()
+		return resp, errors.New("micro: ")
+	}
+
 	respData, err := rs.invoke(ctx, r)
+	//if isOneway(ctx){
+	//	return nil, errors.New("")
+	//}
 	resp.Data = respData
 	if err != nil {
 		return resp, err

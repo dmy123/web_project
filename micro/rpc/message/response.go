@@ -31,6 +31,9 @@ func EncodeResp(response *Response) []byte {
 
 func DecodeResp(data []byte) *Response {
 	resp := &Response{}
+	if len(data) == 0 {
+		return resp
+	}
 	resp.HeadLength = binary.BigEndian.Uint32(data[:4])
 	resp.BodyLength = binary.BigEndian.Uint32(data[4:8])
 	resp.MessageId = binary.BigEndian.Uint32(data[8:12])

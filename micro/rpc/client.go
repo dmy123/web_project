@@ -48,11 +48,16 @@ func setFuncField(service Service, p Proxy, s serialize.Serializer) error {
 				if err != nil {
 					return []reflect.Value{retVal, reflect.ValueOf(err)}
 				}
+				meta := make(map[string]string)
+				if isOneway(ctx) {
+					meta["one-way"] = "true"
+				}
 				req := &message.Request{
 					ServiceName: service.Name(),
 					MethodName:  fieldTyp.Name,
 					Data:        reqData,
 					Serializer:  s.Code(),
+					Meta:        meta,
 				}
 				req.CalculateHeadLength()
 				req.CalculateBodyLength()
@@ -142,14 +147,14 @@ func (c *Client) Invoke(ctx context.Context, req *message.Request) (*message.Res
 	data := message.EncodeReq(req)
 	// 发请求
 	//conn, err := net.DialTimeout("tcp", c.addr, time.Second*3)
-	resp, _ := c.Send(data)
+	resp, err := c.send(ctx, data)
 	//return &message.Response{
 	//	Data: resp,
 	//}, nil
-	return message.DecodeResp(resp), nil
+	return message.DecodeResp(resp), err
 }
 
-func (c *Client) Send(data []byte) ([]byte, error) {
+func (c *Client) send(ctx context.Context, data []byte) ([]byte, error) {
 	//conn, err := net.DialTimeout("tcp", c.addr, time.Second*3)
 	co, err := c.pool.Get()
 	if err != nil {
@@ -164,6 +169,10 @@ func (c *Client) Send(data []byte) ([]byte, error) {
 	_, err = conn.Write(data)
 	if err != nil {
 		return nil, err
+	}
+
+	if isOneway(ctx) {
+		return nil, errors.New("micro: oneway, no need to deal resp")
 	}
 
 	return ReadMsg(conn)
