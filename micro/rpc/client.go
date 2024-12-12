@@ -9,6 +9,7 @@ import (
 	"github.com/silenceper/pool"
 	"net"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -48,7 +49,10 @@ func setFuncField(service Service, p Proxy, s serialize.Serializer) error {
 				if err != nil {
 					return []reflect.Value{retVal, reflect.ValueOf(err)}
 				}
-				meta := make(map[string]string)
+				meta := make(map[string]string, 2)
+				if deadline, ok := ctx.Deadline(); ok {
+					meta["Deadline"] = strconv.FormatInt(deadline.UnixMilli(), 10)
+				}
 				if isOneway(ctx) {
 					meta["one-way"] = "true"
 				}
@@ -140,20 +144,39 @@ func NewClient(addr string, opt ...ClientOpt) (*Client, error) {
 }
 
 func (c *Client) Invoke(ctx context.Context, req *message.Request) (*message.Response, error) {
-	//data, err := json.Marshal(req)
-	//if err != nil {
-	//	return nil, err
-	//}
-	data := message.EncodeReq(req)
-	// 发请求
-	//conn, err := net.DialTimeout("tcp", c.addr, time.Second*3)
-	resp, err := c.send(ctx, data)
-	//return &message.Response{
-	//	Data: resp,
-	//}, nil
-	return message.DecodeResp(resp), err
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
+	ch := make(chan struct{}, 1)
+	defer func() { close(ch) }()
+	var (
+		resp *message.Response
+		err  error
+	)
+	go func() {
+		resp, err = c.doInvoke(ctx, req)
+		ch <- struct{}{}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-ch:
+		return resp, err
+	}
+
 }
 
+func (c *Client) doInvoke(ctx context.Context, req *message.Request) (*message.Response, error) {
+	data := message.EncodeReq(req)
+
+	resp, err := c.send(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+	return message.DecodeResp(resp), err
+}
 func (c *Client) send(ctx context.Context, data []byte) ([]byte, error) {
 	//conn, err := net.DialTimeout("tcp", c.addr, time.Second*3)
 	co, err := c.pool.Get()
