@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"awesomeProject1/micro/rpc/compresser"
 	"awesomeProject1/micro/rpc/message"
 	json2 "awesomeProject1/micro/rpc/serialize/json"
 	"context"
@@ -20,6 +21,7 @@ func Test_setFuncField(t *testing.T) {
 	arg, err := json.Marshal(&GetByIDReq{Id: 123})
 	assert.NoError(t, err)
 	s := &json2.Serializer{}
+	c := &compresser.DoNothingCompresser{}
 	tests := []struct {
 		name    string
 		args    args
@@ -59,13 +61,25 @@ func Test_setFuncField(t *testing.T) {
 				mock: func(ctrl *gomock.Controller) Proxy {
 					p := NewMockProxy(ctrl)
 					p.EXPECT().Invoke(gomock.Any(), &message.Request{
-						HeadLength:  36,
-						BodyLength:  10,
-						Serializer:  s.Code(),
-						ServiceName: "user-service",
+						HeadLength: 36,
+						BodyLength: 10,
+						Serializer: s.Code(),
+						//Compresser:  c.Code(),
+						ServiceName: UserService{}.Name(),
 						MethodName:  "GetByID",
 						Data:        arg,
 					}).Return(&message.Response{}, nil)
+					return p
+				},
+			},
+		},
+		{
+			name: "pointer",
+			args: args{
+				service: &UserService{},
+				mock: func(ctrl *gomock.Controller) Proxy {
+					p := NewMockProxy(ctrl)
+					p.EXPECT().Invoke(gomock.Any(), gomock.Any()).Return(&message.Response{}, nil)
 					return p
 				},
 			},
@@ -75,7 +89,7 @@ func Test_setFuncField(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			err := setFuncField(tt.args.service, tt.args.mock(ctrl), s)
+			err := setFuncField(tt.args.service, tt.args.mock(ctrl), s, c)
 			assert.Equal(t, tt.wantErr, err)
 			if err != nil {
 				return

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"awesomeProject1/micro/rpc/compresser"
 	"awesomeProject1/micro/rpc/message"
 	"awesomeProject1/micro/rpc/serialize"
 	json2 "awesomeProject1/micro/rpc/serialize/json"
@@ -16,10 +17,15 @@ import (
 type Server struct {
 	services    map[string]reflectionStub
 	serializers map[uint8]serialize.Serializer
+	compressors map[uint8]compresser.Compresser
 }
 
 func (s *Server) RegisterSerializer(sl serialize.Serializer) {
 	s.serializers[sl.Code()] = sl
+}
+
+func (s *Server) RegisterCompressor(cs compresser.Compresser) {
+	s.compressors[cs.Code()] = cs
 }
 
 func (s *Server) RegisterService(service Service) {
@@ -27,6 +33,7 @@ func (s *Server) RegisterService(service Service) {
 		s:           service,
 		value:       reflect.ValueOf(service),
 		serializers: s.serializers,
+		compressors: s.compressors,
 	}
 }
 
@@ -34,9 +41,11 @@ func NewServer() *Server {
 	server := &Server{
 		services:    make(map[string]reflectionStub, 16),
 		serializers: make(map[uint8]serialize.Serializer, 4),
+		compressors: make(map[uint8]compresser.Compresser, 4),
 	}
 
 	server.RegisterSerializer(&json2.Serializer{})
+	server.RegisterCompressor(&compresser.DoNothingCompresser{})
 	return server
 }
 
@@ -147,6 +156,7 @@ type reflectionStub struct {
 	s           Service
 	value       reflect.Value
 	serializers map[uint8]serialize.Serializer
+	compressors map[uint8]compresser.Compresser
 }
 
 func (s *reflectionStub) invoke(ctx context.Context, req *message.Request) ([]byte, error) {
@@ -161,7 +171,17 @@ func (s *reflectionStub) invoke(ctx context.Context, req *message.Request) ([]by
 	if !ok {
 		return nil, fmt.Errorf("unknown serializer: %q", req.Serializer)
 	}
-	err := serializer.Decode(req.Data, inReq.Interface())
+
+	comp, ok := s.compressors[req.Compresser]
+	if !ok {
+		return nil, fmt.Errorf("unknown compressor: %q", req.Compresser)
+	}
+	data, err := comp.Uncompress(req.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = serializer.Decode(data, inReq.Interface())
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +198,10 @@ func (s *reflectionStub) invoke(ctx context.Context, req *message.Request) ([]by
 	} else {
 		var er error
 		res, er = serializer.Encode(results[0].Interface())
+		if er != nil {
+			return nil, er
+		}
+		res, er = comp.Compress(res)
 		if er != nil {
 			return nil, er
 		}

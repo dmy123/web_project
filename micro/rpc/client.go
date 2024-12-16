@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"awesomeProject1/micro/rpc/compresser"
 	"awesomeProject1/micro/rpc/message"
 	"awesomeProject1/micro/rpc/serialize"
 	json2 "awesomeProject1/micro/rpc/serialize/json"
@@ -15,10 +16,10 @@ import (
 
 // InitService 要为GetById 之类的函数类型的字段赋值
 func (c *Client) InitService(service Service) error {
-	return setFuncField(service, c, c.serializer)
+	return setFuncField(service, c, c.serializer, c.compresser)
 }
 
-func setFuncField(service Service, p Proxy, s serialize.Serializer) error {
+func setFuncField(service Service, p Proxy, s serialize.Serializer, c compresser.Compresser) error {
 	if service == nil {
 		return errors.New("rpc：不支持nil")
 	}
@@ -49,6 +50,13 @@ func setFuncField(service Service, p Proxy, s serialize.Serializer) error {
 				if err != nil {
 					return []reflect.Value{retVal, reflect.ValueOf(err)}
 				}
+
+				rd, err := c.Compress(reqData)
+				if err != nil {
+					return []reflect.Value{retVal, reflect.ValueOf(err)}
+				}
+				reqData = rd
+
 				meta := make(map[string]string, 2)
 				if deadline, ok := ctx.Deadline(); ok {
 					meta["Deadline"] = strconv.FormatInt(deadline.UnixMilli(), 10)
@@ -61,6 +69,7 @@ func setFuncField(service Service, p Proxy, s serialize.Serializer) error {
 					MethodName:  fieldTyp.Name,
 					Data:        reqData,
 					Serializer:  s.Code(),
+					Compresser:  c.Code(),
 					Meta:        meta,
 				}
 				req.CalculateHeadLength()
@@ -76,7 +85,11 @@ func setFuncField(service Service, p Proxy, s serialize.Serializer) error {
 				}
 
 				if len(resp.Data) > 0 {
-					err = s.Decode(resp.Data, retVal.Interface())
+					data, err := c.Uncompress(resp.Data)
+					if err != nil {
+						return []reflect.Value{retVal, reflect.ValueOf(err)}
+					}
+					err = s.Decode(data, retVal.Interface())
 					if err != nil {
 						return []reflect.Value{retVal, reflect.ValueOf(err)}
 					}
@@ -106,6 +119,7 @@ type Client struct {
 	//addr string
 	pool       pool.Pool
 	serializer serialize.Serializer
+	compresser compresser.Compresser
 }
 
 type ClientOpt func(c *Client)
@@ -136,6 +150,7 @@ func NewClient(addr string, opt ...ClientOpt) (*Client, error) {
 		//addr: addr,
 		pool:       p,
 		serializer: &json2.Serializer{},
+		compresser: &compresser.DoNothingCompresser{},
 	}
 	for _, opt := range opt {
 		opt(res)
